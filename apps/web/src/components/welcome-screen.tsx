@@ -88,7 +88,7 @@ export function WelcomeScreen() {
     <div className="relative min-h-[calc(100vh-3rem)] w-full flex items-center justify-center p-6 md:p-12 overflow-hidden bg-background">
       {/* Decorative ambient glowing background circles */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[400px] h-[400px] bg-rose-500/5 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="w-full max-w-3xl space-y-8 relative z-10">
         <div className="text-center space-y-4 animate-in fade-in duration-700">

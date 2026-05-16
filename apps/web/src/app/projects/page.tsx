@@ -52,7 +52,7 @@ export default function ProjectsPage() {
       <div className="relative min-h-[calc(100vh-3rem)] w-full p-6 md:p-8 overflow-hidden bg-background">
         {/* Glow Effects */}
         <div className="absolute top-0 right-1/4 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-0 left-1/4 w-[350px] h-[350px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-[350px] h-[350px] bg-rose-500/5 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="max-w-5xl mx-auto space-y-8 relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-6">
@@ -114,7 +114,7 @@ export default function ProjectsPage() {
                   onClick={() => router.push(`/projects/${project.id}/intake`)}
                 >
                   {/* Decorative glowing gradient border top */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/50 to-emerald-500/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/50 to-rose-500/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between gap-4">

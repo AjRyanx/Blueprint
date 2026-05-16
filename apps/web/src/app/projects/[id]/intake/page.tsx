@@ -123,7 +123,7 @@ export default function IntakePage() {
       <div className="relative min-h-[calc(100vh-3rem)] w-full p-6 md:p-8 overflow-hidden bg-background">
         {/* Glow Effects */}
         <div className="absolute top-0 left-1/4 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-[350px] h-[350px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[350px] h-[350px] bg-rose-500/5 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="max-w-3xl mx-auto space-y-8 relative z-10">
           <div className="flex items-center justify-between border-b border-border/40 pb-4">
