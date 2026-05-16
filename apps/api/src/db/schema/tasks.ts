@@ -13,7 +13,6 @@ export const implementationTasks = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     requirementId: uuid('requirement_id')
-      .notNull()
       .references(() => requirements.id, { onDelete: 'cascade' }),
     sequenceOrder: integer('sequence_order').notNull(),
     title: varchar('title', { length: 255 }).notNull(),

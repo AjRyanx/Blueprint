@@ -105,6 +105,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           promptText,
           acceptanceCriteria: sysTask.criteria,
           status: 'ready',
+          requirementId: null,
         })
         .returning();
       tasks.push(task);
@@ -113,6 +114,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     // 2. Add Requirement-based Tasks
     for (let i = 0; i < uniqueReqs.length; i++) {
       const req = uniqueReqs[i];
+      if (!req) continue;
+
       const title = generateTaskTitle(req);
       const objective = generateTaskObjective(req);
       const criteria = generateAcceptanceCriteria(req);
