@@ -14,6 +14,8 @@ import { FileText, Sparkles, Pencil, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useProjectStore } from '@/stores/project-store';
 
 const API = process.env.NEXT_PUBLIC_API_URL?.replace('localhost', '127.0.0.1') || 'http://127.0.0.1:4000';
 
