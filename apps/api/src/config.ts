@@ -28,7 +28,7 @@ export const config = {
       : ['http://localhost:3000'],
   },
   rateLimit: {
-    standard: 100,
-    ai: 10,
+    standard: 1000,
+    ai: 100,
   },
 } as const;
