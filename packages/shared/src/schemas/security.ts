@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const updateChecklistItemSchema = z.object({
-  itemId: z.string().uuid(),
+  itemId: z.string(),
   passed: z.boolean(),
   notes: z.string().max(1000).optional(),
 });

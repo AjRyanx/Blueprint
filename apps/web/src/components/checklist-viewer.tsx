@@ -197,9 +197,9 @@ export function ChecklistViewer({ projectId }: ChecklistViewerProps) {
               </CardHeader>
               <CardContent className="py-2">
                 <div className="space-y-1">
-                  {categoryItems.map((item) => (
+                  {categoryItems.map((item, idx) => (
                     <div
-                      key={item.id}
+                      key={`${item.id}-${idx}`}
                       className={cn(
                         'flex items-start gap-3 py-2 px-2 rounded-md hover:bg-muted/50',
                         item.required && !item.passed && 'border-l-2 border-l-destructive',
