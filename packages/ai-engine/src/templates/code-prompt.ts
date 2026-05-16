@@ -57,7 +57,7 @@ export function buildPrompt(context: PromptContext): string {
     const patterns = context.architecture.patterns || [];
     const constraints = context.architecture.constraints || [];
     
-    archSpec = [
+    const archLines = [
       '### 🏛️ System Architecture Design',
       context.architecture.overview ? `*Overview*: ${context.architecture.overview}` : '',
       categories.length > 0
@@ -69,8 +69,11 @@ export function buildPrompt(context: PromptContext): string {
       constraints.length > 0
         ? `*System Constraints*:\n${constraints.map((c: any) => `  - ${c}`).join('\n')}`
         : '',
-      ''
-    ].filter(Boolean).join('\n');
+    ].filter(Boolean);
+
+    if (archLines.length > 1) {
+      archSpec = archLines.join('\n') + '\n';
+    }
   }
 
   // Assemble Data Model Schema context
@@ -79,7 +82,7 @@ export function buildPrompt(context: PromptContext): string {
     const entities = context.dataModel.entities || [];
     const relationships = context.dataModel.relationships || [];
     
-    dataModelSpec = [
+    const dataLines = [
       '### 💾 Database Schema & Entity Map',
       entities.length > 0
         ? `*Database Entities*:\n${entities.map((e: any) => {
@@ -90,8 +93,11 @@ export function buildPrompt(context: PromptContext): string {
       relationships.length > 0
         ? `*Entity Relationships*:\n${relationships.map((r: any) => `  - ${r.source} --(${r.name}: ${r.type})--> ${r.target}`).join('\n')}`
         : '',
-      ''
-    ].filter(Boolean).join('\n');
+    ].filter(Boolean);
+
+    if (dataLines.length > 1) {
+      dataModelSpec = dataLines.join('\n') + '\n';
+    }
   }
 
   // Assemble Security audit context
@@ -100,33 +106,48 @@ export function buildPrompt(context: PromptContext): string {
     const checklist = context.security.checklist || [];
     const passedChecks = checklist.filter((c: any) => c.status === 'passed');
     
-    securitySpec = [
-      '### 🛡️ Security Gate Requirements',
-      passedChecks.length > 0
-        ? `*Validated Controls*:\n${passedChecks.map((c: any) => `  - **${c.name}**: ${c.description}`).join('\n')}`
-        : '',
-      ''
-    ].filter(Boolean).join('\n');
+    if (passedChecks.length > 0) {
+      securitySpec = [
+        '### 🛡️ Security Gate Requirements',
+        `*Validated Controls*:\n${passedChecks.map((c: any) => `  - **${c.name}**: ${c.description}`).join('\n')}`,
+        ''
+      ].join('\n');
+    }
   }
 
-  const taskSpec = [
-    `## Task: ${context.task.title}`,
+  // Task details at the VERY TOP of the prompt
+  const taskHeader = [
+    `# 📋 IMPLEMENTATION TASK: ${context.task.title.toUpperCase()}`,
     '',
-    context.task.objective,
+    `**Objective**: ${context.task.objective}`,
     '',
-    '### Technical Constraints',
+    '### ✅ Acceptance Criteria',
+    ...context.task.acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`),
+    '',
+    '### 🛠️ Technical Constraints',
     ...(context.stack
       ? Object.entries(context.stack)
           .filter(([, v]) => v)
-          .map(([layer, tech]) => `- ${layer}: ${tech}`)
+          .map(([layer, tech]) => `- **${layer.charAt(0).toUpperCase() + layer.slice(1)}**: ${tech}`)
       : []),
     '',
-    '### Security Requirements',
+    '### 🔒 Security Requirements',
     ...(context.securityRequirements ?? SECURITY_REQUIREMENTS).map((r) => `- ${r}`),
     '',
-    '### Acceptance Criteria',
-    ...context.task.acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`),
   ].join('\n');
+
+  // Background context at the bottom
+  const referenceContext = [
+    '---',
+    '## 📖 SYSTEM REFERENCE CONTEXT (For developer tool background awareness)',
+    '',
+    `**Role Context**: ${role}`,
+    `**System Overview**: ${contextSummary}`,
+    '',
+    archSpec,
+    dataModelSpec,
+    securitySpec,
+  ].filter((p) => p !== '').join('\n');
 
   const outputFormat = OUTPUT_FORMAT_TEMPLATE.replace(
     '{outputType}',
@@ -134,20 +155,13 @@ export function buildPrompt(context: PromptContext): string {
   );
 
   return [
-    role,
-    '',
-    contextSummary,
-    '',
-    archSpec,
-    dataModelSpec,
-    securitySpec,
-    '',
-    taskSpec,
+    taskHeader,
+    referenceContext,
     '',
     outputFormat,
     '',
     `Keep this response focused and within approximately 2000-6000 tokens.`,
-  ].filter((p) => p !== '').join('\n');
+  ].join('\n');
 }
 
 export function generateTaskTitle(requirement: Requirement): string {
