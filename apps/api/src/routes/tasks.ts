@@ -53,16 +53,73 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
     await db.delete(implementationTasks).where(eq(implementationTasks.projectId, id));
 
+    // Deduplicate requirements by story text to prevent duplicate prompts
+    const seenStories = new Set<string>();
+    const uniqueReqs = reqs.filter((r) => {
+      if (seenStories.has(r.userStory)) return false;
+      seenStories.add(r.userStory);
+      return true;
+    });
+
     const tasks = [];
-    for (let i = 0; i < reqs.length; i++) {
-      const req = reqs[i];
+    let sequence = 1;
+
+    // 1. Add Foundational System Tasks
+    const systemTasks = [
+      {
+        title: 'Project & Database Setup',
+        objective: 'Initialize the project structure, environment variables, and implement the database schema based on the design from Phase 4.',
+        criteria: [
+          'Environment variables are configured correctly',
+          'Database migrations/schemas are implemented and verified',
+          'Connection to the database is established and logged',
+        ],
+      },
+      {
+        title: 'Core Layout & Navigation',
+        objective: 'Implement the main application layout, navigation components, and responsive grid based on the Architecture from Phase 3.',
+        criteria: [
+          'App Shell/Layout component is implemented',
+          'Side navigation reflects all project sections',
+          'Mobile-responsive layout is functional',
+        ],
+      },
+    ];
+
+    for (const sysTask of systemTasks) {
+      const context = {
+        brief: brief as any,
+        requirements: uniqueReqs as any[],
+        task: { title: sysTask.title, objective: sysTask.objective, acceptanceCriteria: sysTask.criteria },
+        stack: { backend: 'Node.js/Fastify', database: 'PostgreSQL' },
+      };
+      const promptText = buildPrompt(context);
+
+      const [task] = await db
+        .insert(implementationTasks)
+        .values({
+          projectId: id,
+          sequenceOrder: sequence++,
+          title: sysTask.title,
+          objective: sysTask.objective,
+          promptText,
+          acceptanceCriteria: sysTask.criteria,
+          status: 'ready',
+        })
+        .returning();
+      tasks.push(task);
+    }
+
+    // 2. Add Requirement-based Tasks
+    for (let i = 0; i < uniqueReqs.length; i++) {
+      const req = uniqueReqs[i];
       const title = generateTaskTitle(req);
       const objective = generateTaskObjective(req);
       const criteria = generateAcceptanceCriteria(req);
 
       const context = {
         brief: brief as any,
-        requirements: reqs as any[],
+        requirements: uniqueReqs as any[],
         task: { title, objective, acceptanceCriteria: criteria },
         stack: { backend: 'Node.js/Fastify', database: 'PostgreSQL' },
       };
@@ -74,7 +131,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         .values({
           projectId: id,
           requirementId: req.id,
-          sequenceOrder: i + 1,
+          sequenceOrder: sequence++,
           title,
           objective,
           promptText,

@@ -70,6 +70,9 @@ export async function requirementsRoutes(fastify: FastifyInstance) {
       });
     }
 
+    // Clear existing requirements before generating new ones
+    await db.delete(requirements).where(eq(requirements.projectId, id));
+
     const inserted = [];
     for (const story of stories) {
       const [req] = await db
