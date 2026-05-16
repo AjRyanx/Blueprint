@@ -12,6 +12,7 @@ export const updateProjectSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional(),
   status: z.enum(['active', 'archived']).optional(),
+  currentPhase: z.number().int().min(1).max(6).optional(),
 });
 
 export const projectBriefSchema = z.object({
