@@ -78,28 +78,15 @@ export async function chatRoutes(fastify: FastifyInstance) {
     reply.raw.flushHeaders();
 
     try {
-      let fullText = '';
       await orchestrator.processPhase1Intake(
         message,
         history,
         (token: string) => {
-          fullText += token;
+          try {
+            reply.raw.write(`data: ${JSON.stringify({ token })}\n\n`);
+          } catch {}
         },
       );
-
-      let cleanText = stripReasoning(fullText);
-
-      if (!cleanText || cleanText.length < 3) {
-        cleanText = 'I understand. Could you tell me more about what you need?';
-      }
-
-      let sent = 0;
-      const chunkSize = Math.max(3, Math.floor(cleanText.length / 20));
-      while (sent < cleanText.length) {
-        const chunk = cleanText.slice(sent, sent + chunkSize);
-        try { reply.raw.write(`data: ${JSON.stringify({ token: chunk })}\n\n`); } catch {}
-        sent += chunkSize;
-      }
 
       reply.raw.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     } catch (err) {

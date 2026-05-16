@@ -78,7 +78,10 @@ export function useChat(projectId: string) {
           {
             method: 'POST',
             headers,
-            body: JSON.stringify({ message: content }),
+            body: JSON.stringify({ 
+              message: content,
+              history: messages.map(m => ({ role: m.role, content: m.content }))
+            }),
             signal: abortRef.current.signal,
           },
         );
