@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
 import { useState } from 'react';
 
@@ -22,10 +23,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={200}>
-          {children}
-          <Toaster position="bottom-right" richColors />
-        </TooltipProvider>
+        <ThemeProvider defaultTheme="system">
+          <TooltipProvider delayDuration={200}>
+            {children}
+            <Toaster position="bottom-right" richColors />
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </SessionProvider>
   );
