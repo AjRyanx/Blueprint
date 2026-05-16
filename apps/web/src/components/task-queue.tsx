@@ -54,6 +54,27 @@ export function TaskQueue({ projectId }: TaskQueueProps) {
     onError: (err) => toast.error(err.message),
   });
 
+  const updateTaskStatusMutation = useMutation({
+    mutationFn: async ({ taskId, status }: { taskId: string; status: string }) => {
+      const res = await fetch(`${API}/api/v1/projects/${projectId}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => {
+      toast.success('Task status updated');
+      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const copyPrompt = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Prompt copied to clipboard');
@@ -160,6 +181,19 @@ export function TaskQueue({ projectId }: TaskQueueProps) {
                       </Badge>
                     </div>
                     <div className="flex gap-1">
+                      {task.status !== 'accepted' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                          onClick={() =>
+                            updateTaskStatusMutation.mutate({ taskId: task.id, status: 'accepted' })
+                          }
+                          disabled={updateTaskStatusMutation.isPending}
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" /> Mark as Done
+                        </Button>
+                      )}
                       {task.promptText && (
                         <Button
                           variant="ghost"

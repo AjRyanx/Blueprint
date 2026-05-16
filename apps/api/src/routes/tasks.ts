@@ -148,4 +148,31 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
     return { success: true, data: tasks };
   });
+
+  fastify.patch('/api/v1/projects/:id/tasks/:taskId', async (request, reply) => {
+    const { id, taskId } = request.params as { id: string; taskId: string };
+    const { userId } = request.user;
+    const { status, reviewStatus } = request.body as { status?: string; reviewStatus?: string };
+
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    if (!project || project.userId !== userId) {
+      return reply.status(404).send({ success: false, error: 'Project not found' });
+    }
+
+    const [updated] = await db
+      .update(implementationTasks)
+      .set({
+        ...(status && { status }),
+        ...(reviewStatus && { reviewStatus }),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(implementationTasks.id, taskId), eq(implementationTasks.projectId, id)))
+      .returning();
+
+    if (!updated) {
+      return reply.status(404).send({ success: false, error: 'Task not found' });
+    }
+
+    return { success: true, data: updated };
+  });
 }
