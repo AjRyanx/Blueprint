@@ -65,7 +65,7 @@ export function PhaseSidebar() {
       <ScrollArea className="flex-1 py-4">
         <nav className="px-3 space-y-2">
           {phases.map((phase, i) => {
-            const Icon = phaseIcons[i];
+            const Icon = phaseIcons[i] || Code;
             const StatusIcon = statusIcon[phase.status];
             const isActive = phase.phase === currentPhase;
             const isClickable = phase.status === 'active' || phase.status === 'completed';
