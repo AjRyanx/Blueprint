@@ -1,4 +1,4 @@
-import type { ProjectBrief, Requirement, ImplementationTask } from '@blueprint/shared';
+import type { ProjectBrief, Requirement } from '@blueprint/shared';
 
 export type PromptContext = {
   brief: ProjectBrief;
@@ -15,6 +15,9 @@ export type PromptContext = {
     auth?: string;
   };
   securityRequirements?: string[];
+  architecture?: any;
+  dataModel?: any;
+  security?: any;
 };
 
 const ROLE_TEMPLATE = `You are a senior {stack} developer building {projectName}.`;
@@ -47,6 +50,65 @@ export function buildPrompt(context: PromptContext): string {
   const contextSummary = CONTEXT_TEMPLATE.replace('{description}', description)
     .replace('{techStack}', techStack || 'the selected stack');
 
+  // Assemble Architecture Design context
+  let archSpec = '';
+  if (context.architecture) {
+    const categories = context.architecture.techStack || [];
+    const patterns = context.architecture.patterns || [];
+    const constraints = context.architecture.constraints || [];
+    
+    archSpec = [
+      '### 🏛️ System Architecture Design',
+      context.architecture.overview ? `*Overview*: ${context.architecture.overview}` : '',
+      categories.length > 0
+        ? `*Technology Stack*:\n${categories.map((c: any) => `  - **${c.category}**: ${c.items.map((i: any) => `${i.name}${i.notes ? ` (${i.notes})` : ''}`).join(', ')}`).join('\n')}`
+        : '',
+      patterns.length > 0
+        ? `*Design Patterns*:\n${patterns.map((p: any) => `  - **${p.name}**: ${p.description}`).join('\n')}`
+        : '',
+      constraints.length > 0
+        ? `*System Constraints*:\n${constraints.map((c: any) => `  - ${c}`).join('\n')}`
+        : '',
+      ''
+    ].filter(Boolean).join('\n');
+  }
+
+  // Assemble Data Model Schema context
+  let dataModelSpec = '';
+  if (context.dataModel) {
+    const entities = context.dataModel.entities || [];
+    const relationships = context.dataModel.relationships || [];
+    
+    dataModelSpec = [
+      '### 💾 Database Schema & Entity Map',
+      entities.length > 0
+        ? `*Database Entities*:\n${entities.map((e: any) => {
+            const attrList = (e.attributes || []).map((a: any) => `${a.name} (${a.type}${a.required ? ', required' : ''}${a.unique ? ', unique' : ''})`).join(', ');
+            return `  - **${e.name}**: ${e.description || 'Data Entity'}. Fields: [${attrList}]`;
+          }).join('\n')}`
+        : '',
+      relationships.length > 0
+        ? `*Entity Relationships*:\n${relationships.map((r: any) => `  - ${r.source} --(${r.name}: ${r.type})--> ${r.target}`).join('\n')}`
+        : '',
+      ''
+    ].filter(Boolean).join('\n');
+  }
+
+  // Assemble Security audit context
+  let securitySpec = '';
+  if (context.security) {
+    const checklist = context.security.checklist || [];
+    const passedChecks = checklist.filter((c: any) => c.status === 'passed');
+    
+    securitySpec = [
+      '### 🛡️ Security Gate Requirements',
+      passedChecks.length > 0
+        ? `*Validated Controls*:\n${passedChecks.map((c: any) => `  - **${c.name}**: ${c.description}`).join('\n')}`
+        : '',
+      ''
+    ].filter(Boolean).join('\n');
+  }
+
   const taskSpec = [
     `## Task: ${context.task.title}`,
     '',
@@ -76,12 +138,16 @@ export function buildPrompt(context: PromptContext): string {
     '',
     contextSummary,
     '',
+    archSpec,
+    dataModelSpec,
+    securitySpec,
+    '',
     taskSpec,
     '',
     outputFormat,
     '',
     `Keep this response focused and within approximately 2000-6000 tokens.`,
-  ].join('\n');
+  ].filter((p) => p !== '').join('\n');
 }
 
 export function generateTaskTitle(requirement: Requirement): string {

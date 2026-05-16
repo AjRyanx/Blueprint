@@ -3,7 +3,10 @@ import { db } from '../db/index.js';
 import { implementationTasks } from '../db/schema/tasks.js';
 import { requirements } from '../db/schema/requirements.js';
 import { projects } from '../db/schema/projects.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { architectureDesigns } from '../db/schema/architecture.js';
+import { dataModels } from '../db/schema/data.js';
+import { securityChecklists } from '../db/schema/security.js';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { getProjectBrief } from '../services/intake-service.js';
 import { buildPrompt, generateTaskTitle, generateTaskObjective, generateAcceptanceCriteria } from '@blueprint/ai-engine';
 
@@ -42,14 +45,42 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'Complete Phase 1 first' });
     }
 
+    // Load ALL prioritised requirements (Must, Should, Could) - excluding Wont
     const reqs = await db
       .select()
       .from(requirements)
-      .where(and(eq(requirements.projectId, id), eq(requirements.priority, 'must')));
+      .where(
+        and(
+          eq(requirements.projectId, id),
+          inArray(requirements.priority, ['must', 'should', 'could'])
+        )
+      );
 
     if (reqs.length === 0) {
-      return reply.status(400).send({ success: false, error: 'No must-have requirements found' });
+      return reply.status(400).send({ success: false, error: 'No prioritised requirements found (Must, Should, or Could Have).' });
     }
+
+    // Sort requirements chronologically by priority: Must Have -> Should Have -> Could Have
+    const priorityValues: Record<string, number> = { must: 1, should: 2, could: 3, wont: 4 };
+    reqs.sort((a, b) => (priorityValues[a.priority as string] ?? 99) - (priorityValues[b.priority as string] ?? 99));
+
+    // Load Phase 3: System Architecture Design
+    const [architecture] = await db
+      .select()
+      .from(architectureDesigns)
+      .where(eq(architectureDesigns.projectId, id));
+
+    // Load Phase 4: Database Data Schema
+    const [dataModel] = await db
+      .select()
+      .from(dataModels)
+      .where(eq(dataModels.projectId, id));
+
+    // Load Phase 5: Security Gates Audit
+    const [security] = await db
+      .select()
+      .from(securityChecklists)
+      .where(eq(securityChecklists.projectId, id));
 
     await db.delete(implementationTasks).where(eq(implementationTasks.projectId, id));
 
@@ -92,6 +123,9 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         requirements: uniqueReqs as any[],
         task: { title: sysTask.title, objective: sysTask.objective, acceptanceCriteria: sysTask.criteria },
         stack: { backend: 'Node.js/Fastify', database: 'PostgreSQL' },
+        architecture: architecture ?? null,
+        dataModel: dataModel ?? null,
+        security: security ?? null,
       };
       const promptText = buildPrompt(context);
 
@@ -111,7 +145,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       tasks.push(task);
     }
 
-    // 2. Add Requirement-based Tasks
+    // 2. Add Requirement-based Tasks (including Must, Should, and Could)
     for (let i = 0; i < uniqueReqs.length; i++) {
       const req = uniqueReqs[i];
       if (!req) continue;
@@ -125,6 +159,9 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         requirements: uniqueReqs as any[],
         task: { title, objective, acceptanceCriteria: criteria },
         stack: { backend: 'Node.js/Fastify', database: 'PostgreSQL' },
+        architecture: architecture ?? null,
+        dataModel: dataModel ?? null,
+        security: security ?? null,
       };
 
       const promptText = buildPrompt(context);
