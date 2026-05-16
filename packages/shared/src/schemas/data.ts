@@ -16,7 +16,7 @@ export const entitySchema = z.object({
 
 export const relationshipSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(['one-to-one', 'one-to-many', 'many-to-many']),
+  type: z.enum(['one-to-one', 'one-to-many', 'many-to-one', 'many-to-many']),
   source: z.string().min(1),
   target: z.string().min(1),
   description: z.string().default(''),

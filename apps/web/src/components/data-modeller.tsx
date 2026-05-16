@@ -402,7 +402,7 @@ export function DataModeller({ projectId }: Props) {
               <div className="flex-1 space-y-2">
                 <Input
                   placeholder="Relationship name"
-                  value={rel.name}
+                  value={rel.name || ''}
                   onChange={(e) => {
                     const u = [...form.relationships];
                     u[ri] = { ...u[ri], name: e.target.value };
@@ -412,7 +412,7 @@ export function DataModeller({ projectId }: Props) {
                 <div className="flex gap-2">
                   <Input
                     placeholder="Source entity"
-                    value={rel.source}
+                    value={rel.source || ''}
                     onChange={(e) => {
                       const u = [...form.relationships];
                       u[ri] = { ...u[ri], source: e.target.value };
@@ -421,7 +421,7 @@ export function DataModeller({ projectId }: Props) {
                   />
                   <Select
                     value={rel.type}
-                    onValueChange={(v: 'one-to-one' | 'one-to-many' | 'many-to-many') => {
+                    onValueChange={(v: 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many') => {
                       const u = [...form.relationships];
                       u[ri] = { ...u[ri], type: v };
                       update({ relationships: u });
@@ -431,12 +431,13 @@ export function DataModeller({ projectId }: Props) {
                     <SelectContent>
                       <SelectItem value="one-to-one">1:1</SelectItem>
                       <SelectItem value="one-to-many">1:N</SelectItem>
+                      <SelectItem value="many-to-one">N:1</SelectItem>
                       <SelectItem value="many-to-many">M:N</SelectItem>
                     </SelectContent>
                   </Select>
                   <Input
                     placeholder="Target entity"
-                    value={rel.target}
+                    value={rel.target || ''}
                     onChange={(e) => {
                       const u = [...form.relationships];
                       u[ri] = { ...u[ri], target: e.target.value };

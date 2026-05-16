@@ -9,6 +9,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { ExportCenter } from '@/components/export-center';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,6 +135,8 @@ export function AppShell({ children, chatPanel, projectId }: AppShellProps) {
             </Button>
             
             <ThemeToggle />
+
+            {projectId && <ExportCenter projectId={projectId} />}
 
             {/* Profile Dropdown */}
             <DropdownMenu>
