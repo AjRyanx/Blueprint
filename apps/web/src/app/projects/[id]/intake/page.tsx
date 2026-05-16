@@ -133,16 +133,33 @@ export default function IntakePage() {
         )}
 
         {brief && (
-          <BriefViewer
-            brief={brief}
-            onSave={async (data) => {
-              if (token) await saveBriefMutation.mutateAsync({ briefData: data, currentToken: token });
-            }}
-            onRegenerate={() => {
-              if (token) synthesizeMutation.mutate(token);
-            }}
-            isRegenerating={synthesizeMutation.isPending}
-          />
+          <div className="space-y-6">
+            <BriefViewer
+              brief={brief}
+              onSave={async (data) => {
+                if (token) await saveBriefMutation.mutateAsync({ briefData: data, currentToken: token });
+              }}
+              onRegenerate={() => {
+                if (token) synthesizeMutation.mutate(token);
+              }}
+              isRegenerating={synthesizeMutation.isPending}
+            />
+            
+            {project?.currentPhase >= 2 && (
+              <div className="flex justify-end pt-4">
+                <Button 
+                  size="lg" 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-lg hover:shadow-xl transition-all"
+                  onClick={() => {
+                    setCurrentPhase(2);
+                    router.push(`/projects/${projectId}/requirements`);
+                  }}
+                >
+                  Proceed to Requirements <ChevronLeft className="h-4 w-4 rotate-180" />
+                </Button>
+              </div>
+            )}
+          </div>
         )}
 
         {brief && messages.length > 5 && (

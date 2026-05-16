@@ -148,9 +148,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
       };
 
       const saved = await saveProjectBrief(id, brief);
-      if (project.currentPhase < 2) {
-        await advancePhase(id, 2);
-      }
+      await advancePhase(id, 2);
 
       return { success: true, data: saved };
     } catch (err) {

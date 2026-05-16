@@ -10,16 +10,15 @@ export async function intakeRoutes(fastify: FastifyInstance) {
   fastify.put('/api/v1/projects/:id/intake/brief', async (request, reply) => {
     const { id } = request.params as { id: string };
     const { userId } = request.user;
+    const brief = request.body;
 
     const [project] = await db.select().from(projects).where(eq(projects.id, id));
     if (!project || project.userId !== userId) {
       return reply.status(404).send({ success: false, error: 'Project not found' });
     }
 
-    const brief = await saveProjectBrief(id, request.body as any);
-    if (project.currentPhase < 2) {
-      await advancePhase(id, 2);
-    }
+    const saved = await saveProjectBrief(id, brief);
+    await advancePhase(id, 2);
     return { success: true, data: brief };
   });
 }
