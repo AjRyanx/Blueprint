@@ -10,7 +10,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { FileText, Sparkles, Pencil } from 'lucide-react';
+import { FileText, Sparkles, Pencil, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -35,6 +35,8 @@ export default function IntakePage() {
   const [isMounted, setIsMounted] = useState(false);
   const [showManualBrief, setShowManualBrief] = useState(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { setCurrentPhase } = useProjectStore();
 
   useEffect(() => {
     setIsMounted(true);

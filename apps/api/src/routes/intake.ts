@@ -17,7 +17,7 @@ export async function intakeRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ success: false, error: 'Project not found' });
     }
 
-    const saved = await saveProjectBrief(id, brief);
+    const saved = await saveProjectBrief(id, brief as any);
     await advancePhase(id, 2);
     return { success: true, data: brief };
   });
