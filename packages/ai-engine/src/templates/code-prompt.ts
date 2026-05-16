@@ -1,5 +1,39 @@
 import type { ProjectBrief, Requirement } from '@blueprint/shared';
 
+export type TechStackItem = {
+  name: string;
+  version?: string;
+  notes?: string;
+};
+
+export type TechStackCategory = {
+  category: string;
+  items: TechStackItem[];
+};
+
+export type ArchitectureContext = {
+  overview?: string | null;
+  techStack?: any;
+  patterns?: any;
+  constraints?: any;
+};
+
+export type DataModelContext = {
+  entities?: any;
+  relationships?: any;
+};
+
+export type SecurityContext = {
+  checklist?: any;
+};
+
+export type ProjectStack = {
+  frontend?: string;
+  backend?: string;
+  database?: string;
+  auth?: string;
+};
+
 export type PromptContext = {
   brief: ProjectBrief;
   requirements: Requirement[];
@@ -8,16 +42,11 @@ export type PromptContext = {
     objective: string;
     acceptanceCriteria: string[];
   };
-  stack?: {
-    frontend?: string;
-    backend?: string;
-    database?: string;
-    auth?: string;
-  };
+  stack?: ProjectStack;
   securityRequirements?: string[];
-  architecture?: any;
-  dataModel?: any;
-  security?: any;
+  architecture?: ArchitectureContext | null;
+  dataModel?: DataModelContext | null;
+  security?: SecurityContext | null;
 };
 
 const ROLE_TEMPLATE = `You are a senior {stack} developer building {projectName}.`;
@@ -34,109 +63,165 @@ const SECURITY_REQUIREMENTS = [
 
 const OUTPUT_FORMAT_TEMPLATE = `Return only the requested {outputType}. Include brief inline comments for non-obvious decisions.`;
 
-export function buildPrompt(context: PromptContext): string {
-  const role = ROLE_TEMPLATE.replace('{stack}', context.stack?.backend ?? 'TypeScript')
-    .replace('{projectName}', context.brief.projectName);
-
-  const techStack = [
-    context.stack?.frontend,
-    context.stack?.backend,
-    context.stack?.database,
-  ]
-    .filter(Boolean)
-    .join(' + ');
-
-  const description = context.brief.oneLineDescription || 'is being built';
-  const contextSummary = CONTEXT_TEMPLATE.replace('{description}', description)
-    .replace('{techStack}', techStack || 'the selected stack');
-
-  // Assemble Architecture Design context
-  let archSpec = '';
-  if (context.architecture) {
-    const categories = context.architecture.techStack || [];
-    const patterns = context.architecture.patterns || [];
-    const constraints = context.architecture.constraints || [];
-    
-    const archLines = [
-      '### 🏛️ System Architecture Design',
-      context.architecture.overview ? `*Overview*: ${context.architecture.overview}` : '',
-      categories.length > 0
-        ? `*Technology Stack*:\n${categories.map((c: any) => `  - **${c.category}**: ${c.items.map((i: any) => `${i.name}${i.notes ? ` (${i.notes})` : ''}`).join(', ')}`).join('\n')}`
-        : '',
-      patterns.length > 0
-        ? `*Design Patterns*:\n${patterns.map((p: any) => `  - **${p.name}**: ${p.description}`).join('\n')}`
-        : '',
-      constraints.length > 0
-        ? `*System Constraints*:\n${constraints.map((c: any) => `  - ${c}`).join('\n')}`
-        : '',
-    ].filter(Boolean);
-
-    if (archLines.length > 1) {
-      archSpec = archLines.join('\n') + '\n';
+/**
+ * Type-safe string interpolation helper.
+ */
+function interpolate(template: string, variables: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    if (key in variables) {
+      return variables[key] ?? '';
     }
-  }
+    return match;
+  });
+}
 
-  // Assemble Data Model Schema context
-  let dataModelSpec = '';
-  if (context.dataModel) {
-    const entities = context.dataModel.entities || [];
-    const relationships = context.dataModel.relationships || [];
-    
-    const dataLines = [
-      '### 💾 Database Schema & Entity Map',
-      entities.length > 0
-        ? `*Database Entities*:\n${entities.map((e: any) => {
-            const attrList = (e.attributes || []).map((a: any) => `${a.name} (${a.type}${a.required ? ', required' : ''}${a.unique ? ', unique' : ''})`).join(', ');
-            return `  - **${e.name}**: ${e.description || 'Data Entity'}. Fields: [${attrList}]`;
-          }).join('\n')}`
-        : '',
-      relationships.length > 0
-        ? `*Entity Relationships*:\n${relationships.map((r: any) => `  - ${r.source} --(${r.name}: ${r.type})--> ${r.target}`).join('\n')}`
-        : '',
-    ].filter(Boolean);
-
-    if (dataLines.length > 1) {
-      dataModelSpec = dataLines.join('\n') + '\n';
-    }
-  }
-
-  // Assemble Security audit context
-  let securitySpec = '';
-  if (context.security) {
-    const checklist = context.security.checklist || [];
-    const passedChecks = checklist.filter((c: any) => c.status === 'passed');
-    
-    if (passedChecks.length > 0) {
-      securitySpec = [
-        '### 🛡️ Security Gate Requirements',
-        `*Validated Controls*:\n${passedChecks.map((c: any) => `  - **${c.name}**: ${c.description}`).join('\n')}`,
-        ''
-      ].join('\n');
-    }
-  }
-
-  // Task details at the VERY TOP of the prompt
-  const taskHeader = [
-    `# 📋 IMPLEMENTATION TASK: ${context.task.title.toUpperCase()}`,
+/**
+ * Assembler for specific implementation task objective and criteria headers.
+ */
+export function assembleTaskHeader(
+  title: string,
+  objective: string,
+  acceptanceCriteria: string[],
+  stack?: ProjectStack,
+  securityRequirements?: string[]
+): string {
+  const securityLines = securityRequirements ?? SECURITY_REQUIREMENTS;
+  
+  return [
+    `# 📋 IMPLEMENTATION TASK: ${title.toUpperCase()}`,
     '',
-    `**Objective**: ${context.task.objective}`,
+    `**Objective**: ${objective}`,
     '',
     '### ✅ Acceptance Criteria',
-    ...context.task.acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`),
+    ...acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`),
     '',
     '### 🛠️ Technical Constraints',
-    ...(context.stack
-      ? Object.entries(context.stack)
+    ...(stack
+      ? Object.entries(stack)
           .filter(([, v]) => v)
           .map(([layer, tech]) => `- **${layer.charAt(0).toUpperCase() + layer.slice(1)}**: ${tech}`)
       : []),
     '',
     '### 🔒 Security Requirements',
-    ...(context.securityRequirements ?? SECURITY_REQUIREMENTS).map((r) => `- ${r}`),
+    ...securityLines.map((r) => `- ${r}`),
     '',
   ].join('\n');
+}
 
-  // Background context at the bottom
+/**
+ * Assembler for System Architecture context specs.
+ */
+export function assembleArchitectureContext(architecture?: ArchitectureContext | null): string {
+  if (!architecture) return '';
+
+  const categories = architecture.techStack || [];
+  const patterns = architecture.patterns || [];
+  const constraints = architecture.constraints || [];
+
+  const archLines = [
+    '### 🏛️ System Architecture Design',
+    architecture.overview ? `*Overview*: ${architecture.overview}` : '',
+    categories.length > 0
+      ? `*Technology Stack*:\n${categories.map((c: any) => `  - **${c.category}**: ${c.items.map((i: any) => `${i.name}${i.notes ? ` (${i.notes})` : ''}`).join(', ')}`).join('\n')}`
+      : '',
+    patterns.length > 0
+      ? `*Design Patterns*:\n${patterns.map((p: any) => `  - **${p.name}**: ${p.description}`).join('\n')}`
+      : '',
+    constraints.length > 0
+      ? `*System Constraints*:\n${constraints.map((c: any) => `  - ${c}`).join('\n')}`
+      : '',
+  ].filter(Boolean);
+
+  return archLines.length > 1 ? archLines.join('\n') + '\n' : '';
+}
+
+/**
+ * Assembler for Database Data Schema specs.
+ */
+export function assembleDataModelContext(dataModel?: DataModelContext | null): string {
+  if (!dataModel) return '';
+
+  const entities = dataModel.entities || [];
+  const relationships = dataModel.relationships || [];
+
+  const dataLines = [
+    '### 💾 Database Schema & Entity Map',
+    entities.length > 0
+      ? `*Database Entities*:\n${entities.map((e: any) => {
+          const attrList = (e.attributes || []).map((a: any) => `${a.name} (${a.type}${a.required ? ', required' : ''}${a.unique ? ', unique' : ''})`).join(', ');
+          return `  - **${e.name}**: ${e.description || 'Data Entity'}. Fields: [${attrList}]`;
+        }).join('\n')}`
+      : '',
+    relationships.length > 0
+      ? `*Entity Relationships*:\n${relationships.map((r: any) => `  - ${r.source} --(${r.name}: ${r.type})--> ${r.target}`).join('\n')}`
+      : '',
+  ].filter(Boolean);
+
+  return dataLines.length > 1 ? dataLines.join('\n') + '\n' : '';
+}
+
+/**
+ * Assembler for Security gate checklists.
+ */
+export function assembleSecurityContext(security?: SecurityContext | null): string {
+  if (!security) return '';
+
+  const checklist = security.checklist || [];
+  const passedChecks = checklist.filter((c: any) => c.status === 'passed' || c.passed === true);
+
+  if (passedChecks.length === 0) return '';
+
+  return [
+    '### 🛡️ Security Gate Requirements',
+    `*Validated Controls*:\n${passedChecks.map((c: any) => `  - **${c.title || c.name}**: ${c.description}`).join('\n')}`,
+    ''
+  ].join('\n');
+}
+
+/**
+ * Assembler for core Role play and Context briefs.
+ */
+export function assembleRoleAndContext(brief: ProjectBrief, stack?: ProjectStack): { role: string; contextSummary: string } {
+  const role = interpolate(ROLE_TEMPLATE, {
+    stack: stack?.backend ?? 'TypeScript',
+    projectName: brief.projectName,
+  });
+
+  const techStackString = [
+    stack?.frontend,
+    stack?.backend,
+    stack?.database,
+  ]
+    .filter(Boolean)
+    .join(' + ') || 'the selected stack';
+
+  const description = brief.oneLineDescription || 'is being built';
+  const contextSummary = interpolate(CONTEXT_TEMPLATE, {
+    description,
+    techStack: techStackString,
+  });
+
+  return { role, contextSummary };
+}
+
+/**
+ * High-quality thin composer of developer implementation tasks prompts.
+ */
+export function buildPrompt(context: PromptContext): string {
+  const { role, contextSummary } = assembleRoleAndContext(context.brief, context.stack);
+
+  const archSpec = assembleArchitectureContext(context.architecture);
+  const dataModelSpec = assembleDataModelContext(context.dataModel);
+  const securitySpec = assembleSecurityContext(context.security);
+
+  const taskHeader = assembleTaskHeader(
+    context.task.title,
+    context.task.objective,
+    context.task.acceptanceCriteria,
+    context.stack,
+    context.securityRequirements
+  );
+
   const referenceContext = [
     '---',
     '## 📖 SYSTEM REFERENCE CONTEXT (For developer tool background awareness)',
@@ -149,10 +234,9 @@ export function buildPrompt(context: PromptContext): string {
     securitySpec,
   ].filter((p) => p !== '').join('\n');
 
-  const outputFormat = OUTPUT_FORMAT_TEMPLATE.replace(
-    '{outputType}',
-    'files/modules needed for this task',
-  );
+  const outputFormat = interpolate(OUTPUT_FORMAT_TEMPLATE, {
+    outputType: 'files/modules needed for this task',
+  });
 
   return [
     taskHeader,
@@ -173,11 +257,30 @@ export function generateTaskObjective(requirement: Requirement): string {
   return `Implement the user story: "${requirement.userStory}". This is a ${requirement.priority}-priority requirement.`;
 }
 
+/**
+ * Action-based, highly testable acceptance criteria generator.
+ */
 export function generateAcceptanceCriteria(requirement: Requirement): string[] {
-  return [
-    `The ${requirement.actor} can ${requirement.action.toLowerCase()}`,
-    `Input validation is enforced server-side`,
-    `Errors are handled gracefully with appropriate messages`,
-    `The feature follows the agreed security requirements`,
+  const criteria = [
+    `Verify that the ${requirement.actor} can successfully execute the action: "${requirement.action}"`,
   ];
+  
+  if (requirement.benefit) {
+    criteria.push(`Confirm that the system achieves the desired benefit: "${requirement.benefit}"`);
+  }
+
+  const actionLower = requirement.action.toLowerCase();
+  
+  if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('save') || actionLower.includes('tactics')) {
+    criteria.push(`Verify that new or updated records are correctly committed to the database and match the schema rules`);
+    criteria.push(`Ensure that form/API validation prevents empty, invalid, or duplicate submissions`);
+  } else if (actionLower.includes('view') || actionLower.includes('standings') || actionLower.includes('roster') || actionLower.includes('injuries')) {
+    criteria.push(`Verify that data is retrieved and rendered correctly in real-time or cached formats`);
+    criteria.push(`Confirm that empty or missing states are handled gracefully in the user interface`);
+  } else if (actionLower.includes('transfer') || actionLower.includes('simulate') || actionLower.includes('adjust')) {
+    criteria.push(`Verify that calculations or simulations update all associated entities (e.g., budgets, rosters, match results)`);
+    criteria.push(`Ensure transactional integrity is maintained, reverting changes if any sub-operation fails`);
+  }
+
+  return criteria;
 }
