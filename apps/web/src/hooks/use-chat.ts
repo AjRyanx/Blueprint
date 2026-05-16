@@ -34,17 +34,20 @@ export function useChat(projectId: string) {
   const loadedRef = useRef(false);
 
   useEffect(() => {
+    setMessages([]);
+    loadedRef.current = false;
+  }, [projectId, setMessages]);
+
+  useEffect(() => {
     if (!token || loadedRef.current) return;
     loadedRef.current = true;
     loadMessages(projectId, token).then((msgs) => {
-      if (msgs.length > 0) {
-        setMessages(msgs.map((m: any) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          timestamp: new Date(m.created_at ?? m.createdAt),
-        })));
-      }
+      setMessages(msgs.map((m: any) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: new Date(m.created_at ?? m.createdAt),
+      })));
     }).catch(() => {});
   }, [projectId, token, setMessages]);
 
