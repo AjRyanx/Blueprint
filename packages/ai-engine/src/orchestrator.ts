@@ -3,6 +3,7 @@ import { GroqClient } from './llm/groq-client.js';
 import { IntakeAgent } from './agents/intake-agent.js';
 import { RequirementsAgent } from './agents/requirements-agent.js';
 import { ArchitectureAgent } from './agents/architecture-agent.js';
+import { DataAgent } from './agents/data-agent.js';
 import { SecurityAgent } from './agents/security-agent.js';
 
 export type AIClient = GeminiClient | GroqClient;
@@ -11,12 +12,14 @@ export class Orchestrator {
   private intakeAgent: IntakeAgent;
   private requirementsAgent: RequirementsAgent;
   private architectureAgent: ArchitectureAgent;
+  private dataAgent: DataAgent;
   private securityAgent: SecurityAgent;
 
   constructor(aiClient: AIClient) {
     this.intakeAgent = new IntakeAgent(aiClient as any);
     this.requirementsAgent = new RequirementsAgent(aiClient as any);
     this.architectureAgent = new ArchitectureAgent(aiClient as any);
+    this.dataAgent = new DataAgent(aiClient as any);
     this.securityAgent = new SecurityAgent(aiClient as any);
   }
 
@@ -48,6 +51,10 @@ export class Orchestrator {
 
   async generateArchitecture(brief: string, stories: any[]) {
     return this.architectureAgent.generateArchitecture(brief, stories);
+  }
+
+  async generateDataModel(brief: string, stories: any[]) {
+    return this.dataAgent.generateDataModel(brief, stories);
   }
 
   getPhaseForNumber(phase: number): string {
