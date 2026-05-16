@@ -1,0 +1,64 @@
+import { GeminiClient } from './llm/gemini-client.js';
+import { GroqClient } from './llm/groq-client.js';
+import { IntakeAgent } from './agents/intake-agent.js';
+import { RequirementsAgent } from './agents/requirements-agent.js';
+import { ArchitectureAgent } from './agents/architecture-agent.js';
+import { SecurityAgent } from './agents/security-agent.js';
+
+export type AIClient = GeminiClient | GroqClient;
+
+export class Orchestrator {
+  private intakeAgent: IntakeAgent;
+  private requirementsAgent: RequirementsAgent;
+  private architectureAgent: ArchitectureAgent;
+  private securityAgent: SecurityAgent;
+
+  constructor(aiClient: AIClient) {
+    this.intakeAgent = new IntakeAgent(aiClient as any);
+    this.requirementsAgent = new RequirementsAgent(aiClient as any);
+    this.architectureAgent = new ArchitectureAgent(aiClient as any);
+    this.securityAgent = new SecurityAgent(aiClient as any);
+  }
+
+  async processPhase1Intake(
+    userMessage: string,
+    conversationHistory: { role: string; content: string }[],
+    onToken?: (token: string) => void,
+  ) {
+    return this.intakeAgent.process(userMessage, conversationHistory, onToken);
+  }
+
+  async generateProjectBrief(conversationHistory: { role: string; content: string }[]) {
+    return this.intakeAgent.synthesizeBrief(conversationHistory);
+  }
+
+  async generateRequirements(
+    brief: string,
+    onToken?: (token: string) => void,
+  ) {
+    return this.requirementsAgent.generateUserStories(brief, onToken);
+  }
+
+  async generateSecurityChecklist(
+    brief: string,
+    requirements: string,
+  ) {
+    return this.securityAgent.generateChecklist(brief, requirements);
+  }
+
+  async generateArchitecture(brief: string, stories: any[]) {
+    return this.architectureAgent.generateArchitecture(brief, stories);
+  }
+
+  getPhaseForNumber(phase: number): string {
+    const phases = [
+      'idea-capture',
+      'requirements',
+      'architecture',
+      'data-modelling',
+      'security',
+      'implementation',
+    ];
+    return phases[phase - 1] ?? 'unknown';
+  }
+}

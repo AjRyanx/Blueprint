@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "rootDir": "../../",
+    "noEmit": false,
+    "paths": {
+      "@blueprint/shared": ["../../packages/shared/src"],
+      "@blueprint/ai-engine": ["../../packages/ai-engine/src"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "../../packages/shared/src/**/*.ts",
+    "../../packages/ai-engine/src/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
