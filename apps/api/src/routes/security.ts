@@ -65,6 +65,8 @@ export async function securityRoutes(fastify: FastifyInstance) {
         .set({
           threats: result.threats,
           checklist: result.checklist,
+          signedOffAt: null,
+          signedOffBy: null,
           updatedAt: new Date(),
         })
         .where(eq(securityChecklists.projectId, id))
