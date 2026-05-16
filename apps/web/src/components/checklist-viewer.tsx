@@ -2,6 +2,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,24 +24,27 @@ type ChecklistViewerProps = {
 };
 
 export function ChecklistViewer({ projectId }: ChecklistViewerProps) {
+  const { data: session } = useSession();
+  const token = (session?.user as any)?.accessToken;
   const qc = useQueryClient();
 
   const { data: checklist, isLoading } = useQuery({
     queryKey: ['security', projectId],
     queryFn: async () => {
       const res = await fetch(`${API}/api/v1/projects/${projectId}/security`, {
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
-      return json.data as SecurityChecklist | null;
+      return json.data ?? null;
     },
+    enabled: !!token,
   });
 
   const generateMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`${API}/api/v1/projects/${projectId}/security/generate`, {
         method: 'POST',
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -57,8 +61,10 @@ export function ChecklistViewer({ projectId }: ChecklistViewerProps) {
     mutationFn: async ({ itemId, passed, notes }: { itemId: string; passed: boolean; notes?: string }) => {
       const res = await fetch(`${API}/api/v1/projects/${projectId}/security/item`, {
         method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ itemId, passed, notes }),
       });
       const json = await res.json();
@@ -77,14 +83,16 @@ export function ChecklistViewer({ projectId }: ChecklistViewerProps) {
       // 1. Sign off the checklist
       await fetch(`${API}/api/v1/projects/${projectId}/security/sign-off`, {
         method: 'POST',
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       // 2. Advance project to Phase 6
       const res = await fetch(`${API}/api/v1/projects/${projectId}`, {
         method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ currentPhase: 6 }),
       });
       const json = await res.json();
