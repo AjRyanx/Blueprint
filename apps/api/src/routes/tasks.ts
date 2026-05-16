@@ -116,9 +116,9 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       const req = uniqueReqs[i];
       if (!req) continue;
 
-      const title = generateTaskTitle(req);
-      const objective = generateTaskObjective(req);
-      const criteria = generateAcceptanceCriteria(req);
+      const title = generateTaskTitle(req as any);
+      const objective = generateTaskObjective(req as any);
+      const criteria = generateAcceptanceCriteria(req as any);
 
       const context = {
         brief: brief as any,
