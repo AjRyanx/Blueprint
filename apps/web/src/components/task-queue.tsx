@@ -60,9 +60,9 @@ export function TaskQueue({ projectId }: TaskQueueProps) {
   };
 
   const exportAll = () => {
-    const allPrompts = tasks
-      .filter((t) => t.promptText)
-      .map((t) => `# ${t.title}\n\n${t.promptText}`)
+    const allPrompts = (tasks as ImplementationTask[])
+      .filter((t: ImplementationTask) => t.promptText)
+      .map((t: ImplementationTask) => `# ${t.title}\n\n${t.promptText}`)
       .join('\n\n---\n\n');
 
     const blob = new Blob([allPrompts], { type: 'text/plain' });
@@ -100,7 +100,7 @@ export function TaskQueue({ projectId }: TaskQueueProps) {
             Implementation Tasks
           </h2>
           <p className="text-sm text-muted-foreground">
-            {tasks.filter((t) => t.status === 'accepted').length}/{tasks.length} completed
+            {(tasks as ImplementationTask[]).filter((t: ImplementationTask) => t.status === 'accepted').length}/{tasks.length} completed
           </p>
         </div>
         <div className="flex gap-2">
@@ -132,10 +132,10 @@ export function TaskQueue({ projectId }: TaskQueueProps) {
       )}
 
       <div className="space-y-4">
-        {tasks
-          .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-          .map((task) => {
-            const config = statusConfig[task.status] ?? statusConfig.pending;
+        {(tasks as ImplementationTask[])
+          .sort((a: ImplementationTask, b: ImplementationTask) => a.sequenceOrder - b.sequenceOrder)
+          .map((task: ImplementationTask) => {
+            const config = (statusConfig as any)[task.status] ?? statusConfig.pending;
             return (
               <Card key={task.id}>
                 <CardHeader className="py-3">
