@@ -11,33 +11,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Code, Copy, CheckCircle, Clock, RefreshCw, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
 import type { ImplementationTask } from '@blueprint/shared';
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 type TaskQueueProps = {
   projectId: string;
 };
 
 export function TaskQueue({ projectId }: TaskQueueProps) {
+  const { data: session } = useSession();
+  const token = (session?.user as any)?.accessToken;
   const qc = useQueryClient();
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', projectId],
     queryFn: async () => {
       const res = await fetch(`${API}/api/v1/projects/${projectId}/tasks`, {
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
-      return json.data as ImplementationTask[];
+      return json.data ?? [];
     },
+    enabled: !!token,
   });
 
   const generateAllMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`${API}/api/v1/projects/${projectId}/tasks/generate`, {
         method: 'POST',
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);

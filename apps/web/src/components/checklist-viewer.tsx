@@ -147,16 +147,19 @@ export function ChecklistViewer({ projectId }: ChecklistViewerProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          {!checklist && (
-            <Button size="sm" onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
-              {generateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-1" />
-              )}
-              Generate Checklist
-            </Button>
-          )}
+          <Button 
+            size="sm" 
+            variant={checklist ? "outline" : "default"}
+            onClick={() => generateMutation.mutate()} 
+            disabled={generateMutation.isPending}
+          >
+            {generateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-1" />
+            )}
+            {checklist ? 'Regenerate Checklist' : 'Generate Checklist'}
+          </Button>
         </div>
       </div>
 
