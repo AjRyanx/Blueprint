@@ -1,3 +1,4 @@
+import { GeminiClient } from '../llm/gemini-client.js';
 import { GroqClient } from '../llm/groq-client.js';
 import { truncateToBudget } from '../utils/token-counter.js';
 import { readFileSync } from 'fs';
@@ -7,10 +8,10 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export class ArchitectureAgent {
-  private client: GroqClient;
+  private client: GeminiClient | GroqClient;
   private systemPrompt: string;
 
-  constructor(client: GroqClient) {
+  constructor(client: GeminiClient | GroqClient) {
     this.client = client;
     try {
       this.systemPrompt = readFileSync(

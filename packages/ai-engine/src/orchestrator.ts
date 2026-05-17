@@ -13,11 +13,14 @@ export class Orchestrator {
   private securityAgent: SecurityAgent;
 
   constructor(private geminiClient: GeminiClient, private groqClient: GroqClient) {
-    this.intakeAgent = new IntakeAgent(this.groqClient);
-    this.requirementsAgent = new RequirementsAgent(this.groqClient);
-    this.architectureAgent = new ArchitectureAgent(this.groqClient);
-    this.dataAgent = new DataAgent(this.groqClient);
-    this.securityAgent = new SecurityAgent(this.groqClient);
+    const isGroqConfigured = !!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim() !== '';
+    const clientToUse = isGroqConfigured ? this.groqClient : this.geminiClient;
+
+    this.intakeAgent = new IntakeAgent(clientToUse);
+    this.requirementsAgent = new RequirementsAgent(clientToUse);
+    this.architectureAgent = new ArchitectureAgent(clientToUse);
+    this.dataAgent = new DataAgent(clientToUse);
+    this.securityAgent = new SecurityAgent(clientToUse);
   }
 
   async processPhase1Intake(
