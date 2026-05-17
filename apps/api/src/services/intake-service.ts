@@ -17,6 +17,7 @@ export async function saveProjectBrief(
     needsDatabase: boolean | null;
     needsServer: boolean | null;
     needsAuth: boolean | null;
+    deploymentModel: string | null;
   },
 ) {
   const existing = await db
@@ -24,21 +25,32 @@ export async function saveProjectBrief(
     .from(projectBriefs)
     .where(eq(projectBriefs.projectId, projectId));
 
+  let result;
   if (existing.length > 0 && existing[0]) {
     const [updated] = await db
       .update(projectBriefs)
       .set({ ...brief, version: existing[0].version + 1, updatedAt: new Date() })
       .where(eq(projectBriefs.projectId, projectId))
       .returning();
-    return updated;
+    result = updated;
+  } else {
+    const [created] = await db
+      .insert(projectBriefs)
+      .values({ projectId, ...brief })
+      .returning();
+    result = created;
   }
 
-  const [created] = await db
-    .insert(projectBriefs)
-    .values({ projectId, ...brief })
-    .returning();
+  // Sync core scope flags back to projects table
+  const updateFields: any = { updatedAt: new Date() };
+  if (brief.needsDatabase !== null) updateFields.needsDatabase = brief.needsDatabase;
+  if (brief.needsServer !== null) updateFields.needsServer = brief.needsServer;
+  if (brief.needsAuth !== null) updateFields.needsAuth = brief.needsAuth;
+  if (brief.deploymentModel !== null) updateFields.deploymentModel = brief.deploymentModel;
 
-  return created;
+  await db.update(projects).set(updateFields).where(eq(projects.id, projectId));
+
+  return result;
 }
 
 export async function getProjectBrief(projectId: string) {

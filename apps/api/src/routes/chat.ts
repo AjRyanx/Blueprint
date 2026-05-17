@@ -161,9 +161,17 @@ export async function chatRoutes(fastify: FastifyInstance) {
           raw.needsAuth === true ? true :
           raw.needsAuth === false ? false :
           null,
+        deploymentModel:
+          raw.deploymentModel === 'local' ? 'local' :
+          raw.deploymentModel === 'self-hosted' ? 'self-hosted' :
+          raw.deploymentModel === 'cloud' ? 'cloud' :
+          null,
       };
 
-      request.log.info({ projectId: id, needsAuth: brief.needsAuth, needsServer: brief.needsServer, needsDatabase: brief.needsDatabase }, 'Synthesized project brief scope flags');
+      request.log.info(
+        { projectId: id, needsAuth: brief.needsAuth, needsServer: brief.needsServer, needsDatabase: brief.needsDatabase, deploymentModel: brief.deploymentModel },
+        'Synthesized project brief scope flags',
+      );
 
       const saved = await saveProjectBrief(id, brief);
       await advancePhase(id, 2);

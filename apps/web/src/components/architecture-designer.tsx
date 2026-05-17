@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/project-store';
+import { useProject } from '@/hooks/use-project';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,6 +83,8 @@ export function ArchitectureDesigner({ projectId }: Props) {
   const token = (session?.user as any)?.accessToken;
   const queryClient = useQueryClient();
 
+  const { data: project } = useProject(projectId);
+
   const { data, isLoading } = useQuery({
     queryKey: ['architecture', projectId],
     queryFn: () => fetchArchitecture(projectId, token),
@@ -89,7 +92,14 @@ export function ArchitectureDesigner({ projectId }: Props) {
   });
 
   const [local, setLocal] = useState<ArchitectureData | null>(null);
-  const form = local ?? data ?? emptyData;
+  const form = local ?? data ?? {
+    ...emptyData,
+    needsDatabase: project?.needsDatabase ?? true,
+    needsServer: project?.needsServer ?? true,
+    needsAuth: project?.needsAuth ?? true,
+    targetPlatform: project?.targetPlatform ?? 'web',
+    deploymentModel: project?.deploymentModel ?? 'cloud',
+  };
 
   const saveMutation = useMutation({
     mutationFn: (d: ArchitectureData) => saveArchitecture(projectId, token, d),

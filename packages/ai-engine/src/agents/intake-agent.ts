@@ -120,13 +120,14 @@ Required JSON format (EXACTLY LIKE THIS):
   "successMetrics": ["Measurable indicators of success"],
   "needsDatabase": null,
   "needsServer": null,
-  "needsAuth": null
+  "needsAuth": null,
+  "deploymentModel": null
 }
 
 STRICT CONSTRAINTS:
 1. Respond with ONLY the raw JSON object. No markdown.
 2. FORBIDDEN WORD: Do not EVER use the literal word "string" as a value in any field.
-3. If a field was not explicitly discussed in the conversation, use your expertise to infer a logical, professional placeholder based on the project type (e.g., if it's an invoice tracker, infer that target users are likely freelancers or small business owners). For needsDatabase, needsServer, and needsAuth: use the project context and type to confidently infer and set them to true or false (e.g., CLI tools, localized utilities, local/standalone bots, or public single-user apps should confidently have needsAuth set to false; stateless utilities should have needsDatabase set to false). Only default to null if it is truly ambiguous.
+3. If a field was not explicitly discussed in the conversation, use your expertise to infer a logical, professional placeholder based on the project type (e.g., if it's an invoice tracker, infer that target users are likely freelancers or small business owners). For needsDatabase, needsServer, needsAuth, and deploymentModel: use the project context and type to confidently infer and set them. Confidently set needsAuth to false for CLI tools, standalone/local bots, or local utility scripts. Set deploymentModel to 'local' for CLI tools, desktop apps, standalone scripts, or local bots; set it to 'self-hosted' for Docker, nginx, on-premise, or enterprise setups; and set it to 'cloud' for SaaS, public web apps, or typical hosted projects. Only default to null if it is truly ambiguous.
 4. Ensure the output is valid, parseable JSON.
 
 Conversation:
