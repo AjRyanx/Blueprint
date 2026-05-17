@@ -12,21 +12,37 @@ export function extractCleanResponse(raw: string): string {
   const tagMatch = raw.match(/<output>([\s\S]*?)<\/output>/);
   const targetText = tagMatch?.[1] ? tagMatch[1] : raw;
 
-  // Filter out all lines that look like CoT/reasoning
+  // Filter out reasoning/CoT/internal metadata lines, but preserve formatting and lists
   const lines = targetText.split('\n').filter(line => {
     const l = line.trim();
-    return l.length > 0
-      && !l.startsWith('*')
-      && !l.startsWith('-')
-      && !l.match(/^\d+\./)
-      && !l.includes('needsDatabase')
-      && !l.includes('needsServer')
-      && !l.includes('needsAuth')
-      && !l.toLowerCase().includes('instruction')
-      && !l.toLowerCase().includes('draft')
-      && !l.toLowerCase().includes('rule ')
-      && !l.toLowerCase().includes('output>')
-      && !l.includes('`');
+    if (l.length === 0) return false;
+
+    // Filter out internal metadata/flag leakage
+    if (
+      l.includes('needsDatabase') ||
+      l.includes('needsServer') ||
+      l.includes('needsAuth') ||
+      l.includes('deploymentModel')
+    ) {
+      return false;
+    }
+
+    // Filter out lines that look like internal instructions, CoT header, or drafts
+    const lower = l.toLowerCase();
+    if (
+      lower.includes('instruction') ||
+      lower.includes('draft') ||
+      lower.includes('rule ') ||
+      lower.includes('output>') ||
+      lower.includes('internal logic') ||
+      lower.includes('reasoning') ||
+      lower.includes('chain of thought') ||
+      lower.includes('thought:')
+    ) {
+      return false;
+    }
+
+    return true;
   });
 
   if (lines.length > 0) {
