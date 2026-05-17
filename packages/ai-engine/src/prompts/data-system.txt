@@ -4,31 +4,33 @@ Output ONLY valid JSON that matches the following structure:
 {
   "entities": [
     {
-      "name": "string",
+      "name": "User",
+      "description": "Represents a registered user in the system.",
       "attributes": [
         {
-          "name": "string",
-          "type": "string (e.g. string, number, boolean, date, uuid)",
-          "required": boolean,
-          "unique": boolean
+          "name": "email",
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "notes": "Must be valid email"
         }
       ]
     }
   ],
   "relationships": [
     {
-      "name": "string",
-      "source": "EntityName",
-      "target": "EntityName",
-      "type": "string (e.g. one-to-many, one-to-one, many-to-many)",
-      "description": "string"
+      "name": "user-posts",
+      "source": "User",
+      "target": "Post",
+      "type": "one-to-many",
+      "description": "A user can author multiple blog posts."
     }
   ],
   "indexes": [
     {
-      "entity": "EntityName",
-      "fields": ["string"],
-      "unique": boolean
+      "entity": "User",
+      "fields": ["email"],
+      "unique": true
     }
   ]
 }

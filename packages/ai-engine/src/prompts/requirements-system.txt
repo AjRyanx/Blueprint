@@ -3,7 +3,13 @@ Do not explain anything. Do not use markdown.
 
 Format:
 [
-  { "actor": "User", "action": "view dashboard", "benefit": "see unpaid invoices", "priority": "must" }
+  {
+    "userStory": "As a User, I want to view dashboard, so that I can see unpaid invoices",
+    "actor": "User",
+    "action": "view dashboard",
+    "benefit": "see unpaid invoices",
+    "priority": "must"
+  }
 ]
 
 Rules:
