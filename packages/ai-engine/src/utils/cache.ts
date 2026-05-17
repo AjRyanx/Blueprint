@@ -4,6 +4,10 @@ type CacheEntry = {
   ttl: number;
 };
 
+/**
+ * TODO: Future integration.
+ * Currently an inactive utility class reserved for downstream semantic prompt caching.
+ */
 export class SemanticCache {
   private store = new Map<string, CacheEntry>();
 

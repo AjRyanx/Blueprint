@@ -28,26 +28,37 @@ export class GroqClient {
       { role: 'user', content: userContent },
     ];
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: 0.1,
-      }),
-    });
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: this.model,
+            messages,
+            temperature: 0.1,
+          }),
+        });
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(`Groq API error: ${JSON.stringify(err)}`);
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: response.statusText }));
+          throw new Error(`Groq API error: ${JSON.stringify(err)}`);
+        }
+
+        const json = (await response.json()) as { choices: { message: { content: string } }[] };
+        return json.choices[0]?.message?.content ?? '';
+      } catch (err) {
+        lastError = err as Error;
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        }
+      }
     }
-
-    const json = (await response.json()) as { choices: { message: { content: string } }[] };
-    return json.choices[0]?.message?.content ?? '';
+    throw lastError ?? new Error('Groq generate failed after 3 attempts');
   }
 
   async generateStream(

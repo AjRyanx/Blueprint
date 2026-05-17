@@ -1,3 +1,7 @@
+/**
+ * TODO: Future integration.
+ * Currently an inactive utility reserved for semantic context compression of prior phases.
+ */
 export function compressPriorPhase(phase: number, content: string): string {
   const lines = content.split('\n').filter(Boolean);
   if (lines.length <= 5) return content;
@@ -11,6 +15,10 @@ export function compressPriorPhase(phase: number, content: string): string {
   return `[Phase ${phase} Summary]\n${summary}\n\nKey points:\n${keyPoints}`;
 }
 
+/**
+ * TODO: Future integration.
+ * Currently an inactive utility reserved for conversation context compression.
+ */
 export function compressConversation(messages: { role: string; content: string }[]): string {
   if (messages.length === 0) return '';
 

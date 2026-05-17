@@ -138,6 +138,11 @@ ${truncateToBudget(fullConversation, 64_000)}`;
       briefPrompt,
     );
 
-    return response;
+    const cleaned = response
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    return cleaned;
   }
 }

@@ -66,9 +66,10 @@ export class GeminiClient {
     onToken: StreamCallback,
   ): Promise<string> {
     let lastError: Error | null = null;
-    let fullText = '';
 
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      let fullText = '';
+      let chunkReceived = false;
       try {
         const result = await this.model.generateContentStream([
           { text: systemPrompt },
@@ -78,6 +79,7 @@ export class GeminiClient {
         for await (const chunk of result.stream) {
           const text = chunk.text();
           if (text) {
+            chunkReceived = true;
             fullText += text;
             onToken(text);
           }
@@ -86,6 +88,10 @@ export class GeminiClient {
         return fullText;
       } catch (err) {
         lastError = err as Error;
+        // If we already received chunks and emitted tokens, do not retry mid-stream.
+        if (chunkReceived) {
+          throw err;
+        }
         if (attempt < this.maxRetries - 1) {
           await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
         }

@@ -5,9 +5,6 @@ import { RequirementsAgent } from './agents/requirements-agent.js';
 import { ArchitectureAgent } from './agents/architecture-agent.js';
 import { DataAgent } from './agents/data-agent.js';
 import { SecurityAgent } from './agents/security-agent.js';
-
-export type AIClient = GeminiClient | GroqClient;
-
 export class Orchestrator {
   private intakeAgent: IntakeAgent;
   private requirementsAgent: RequirementsAgent;
