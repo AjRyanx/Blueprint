@@ -1,5 +1,6 @@
 import { GeminiClient, type StreamCallback } from '../llm/gemini-client.js';
 import { GroqClient } from '../llm/groq-client.js';
+import { ResilientClient } from '../llm/resilient-client.js';
 import { estimateTokens, truncateToBudget } from '../utils/token-counter.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -52,10 +53,10 @@ export function extractCleanResponse(raw: string): string {
 }
 
 export class IntakeAgent {
-  private client: GeminiClient | GroqClient;
+  private client: GeminiClient | GroqClient | ResilientClient;
   private systemPrompt: string;
 
-  constructor(client: GeminiClient | GroqClient) {
+  constructor(client: GeminiClient | GroqClient | ResilientClient) {
     this.client = client;
     try {
       this.systemPrompt = readFileSync(

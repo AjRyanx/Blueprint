@@ -1,5 +1,6 @@
 import { GeminiClient } from '../llm/gemini-client.js';
 import { GroqClient } from '../llm/groq-client.js';
+import { ResilientClient } from '../llm/resilient-client.js';
 import { truncateToBudget } from '../utils/token-counter.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -8,10 +9,10 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export class DataAgent {
-  private client: GeminiClient | GroqClient;
+  private client: GeminiClient | GroqClient | ResilientClient;
   private systemPrompt: string;
 
-  constructor(client: GeminiClient | GroqClient) {
+  constructor(client: GeminiClient | GroqClient | ResilientClient) {
     this.client = client;
     try {
       this.systemPrompt = readFileSync(

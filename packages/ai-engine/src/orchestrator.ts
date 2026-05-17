@@ -1,5 +1,6 @@
 import { GeminiClient } from './llm/gemini-client.js';
 import { GroqClient } from './llm/groq-client.js';
+import { ResilientClient } from './llm/resilient-client.js';
 import { IntakeAgent } from './agents/intake-agent.js';
 import { RequirementsAgent } from './agents/requirements-agent.js';
 import { ArchitectureAgent } from './agents/architecture-agent.js';
@@ -14,7 +15,9 @@ export class Orchestrator {
 
   constructor(private geminiClient: GeminiClient, private groqClient: GroqClient) {
     const isGroqConfigured = !!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim() !== '';
-    const clientToUse = isGroqConfigured ? this.groqClient : this.geminiClient;
+    const clientToUse = isGroqConfigured 
+      ? new ResilientClient(this.groqClient, this.geminiClient)
+      : this.geminiClient;
 
     this.intakeAgent = new IntakeAgent(clientToUse);
     this.requirementsAgent = new RequirementsAgent(clientToUse);
