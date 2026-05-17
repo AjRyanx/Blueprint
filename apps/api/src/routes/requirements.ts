@@ -4,17 +4,21 @@ import { db } from '../db/index.js';
 import { requirements } from '../db/schema/requirements.js';
 import { projects } from '../db/schema/projects.js';
 import { eq, and } from 'drizzle-orm';
-import { GroqClient, Orchestrator } from '@blueprint/ai-engine';
+import { GeminiClient, GroqClient, Orchestrator } from '@blueprint/ai-engine';
 import { getProjectBrief, advancePhase } from '../services/intake-service.js';
 
 export async function requirementsRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
 
+  const geminiClient = new GeminiClient({
+    apiKey: process.env.GEMINI_API_KEY!,
+    model: process.env.GEMINI_MODEL ?? 'gemma-4-26b-a4b-it',
+  });
   const groqClient = new GroqClient({
     apiKey: process.env.GROQ_API_KEY!,
     model: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
   });
-  const orchestrator = new Orchestrator(groqClient as any);
+  const orchestrator = new Orchestrator(geminiClient, groqClient);
 
   fastify.get('/api/v1/projects/:id/requirements', async (request, reply) => {
     const { id } = request.params as { id: string };

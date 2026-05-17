@@ -1,6 +1,7 @@
 export { Orchestrator } from './orchestrator.js';
 export { IntakeAgent } from './agents/intake-agent.js';
 export { RequirementsAgent } from './agents/requirements-agent.js';
+export { ArchitectureAgent } from './agents/architecture-agent.js';
 export { DataAgent } from './agents/data-agent.js';
 export { SecurityAgent } from './agents/security-agent.js';
 export { GeminiClient } from './llm/gemini-client.js';

@@ -4,7 +4,7 @@ import { architectureDesigns } from '../db/schema/architecture.js';
 import { projects } from '../db/schema/projects.js';
 import { eq } from 'drizzle-orm';
 import { architectureDesignSchema } from '@blueprint/shared';
-import { GroqClient, Orchestrator } from '@blueprint/ai-engine';
+import { GeminiClient, GroqClient, Orchestrator } from '@blueprint/ai-engine';
 import { getProjectBrief, advancePhase } from '../services/intake-service.js';
 import { requirements } from '../db/schema/requirements.js';
 
@@ -87,11 +87,15 @@ export async function architectureRoutes(fastify: FastifyInstance) {
       .from(requirements)
       .where(eq(requirements.projectId, id));
 
+    const geminiClient = new GeminiClient({
+      apiKey: process.env.GEMINI_API_KEY!,
+      model: process.env.GEMINI_MODEL ?? 'gemma-4-26b-a4b-it',
+    });
     const groqClient = new GroqClient({
       apiKey: process.env.GROQ_API_KEY!,
       model: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
     });
-    const orchestrator = new Orchestrator(groqClient as any);
+    const orchestrator = new Orchestrator(geminiClient, groqClient);
 
     let designJson = await orchestrator.generateArchitecture(JSON.stringify(brief), stories);
     

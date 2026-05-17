@@ -48,9 +48,11 @@ export class SecurityAgent {
 
     const response = await this.client.generate(this.systemPrompt, content);
 
-    let customItems: any[];
+    let threats: any[] = [];
+    let customItems: any[] = [];
     try {
       const parsed = JSON.parse(response);
+      threats = parsed.threats ?? [];
       customItems = (parsed.additionalChecklistItems ?? []).map((item: any, idx: number) => ({
         ...item,
         id: item.id || `custom-${idx}`,
@@ -61,7 +63,7 @@ export class SecurityAgent {
     }
 
     return {
-      threats: [],
+      threats,
       checklist: [...STANDARD_CHECKLIST, ...customItems],
     };
   }

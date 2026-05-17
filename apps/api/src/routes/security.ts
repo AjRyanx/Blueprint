@@ -4,7 +4,7 @@ import { securityChecklists } from '../db/schema/security.js';
 import { projects } from '../db/schema/projects.js';
 import { requirements as requirementsTable } from '../db/schema/requirements.js';
 import { eq, and } from 'drizzle-orm';
-import { GeminiClient, Orchestrator } from '@blueprint/ai-engine';
+import { GeminiClient, GroqClient, Orchestrator } from '@blueprint/ai-engine';
 import { getProjectBrief } from '../services/intake-service.js';
 import { updateChecklistItemSchema, signOffSchema } from '@blueprint/shared';
 
@@ -15,7 +15,11 @@ export async function securityRoutes(fastify: FastifyInstance) {
     apiKey: process.env.GEMINI_API_KEY!,
     model: process.env.GEMINI_MODEL ?? 'gemma-4-26b-a4b-it',
   });
-  const orchestrator = new Orchestrator(geminiClient);
+  const groqClient = new GroqClient({
+    apiKey: process.env.GROQ_API_KEY!,
+    model: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
+  });
+  const orchestrator = new Orchestrator(geminiClient, groqClient);
 
   fastify.get('/api/v1/projects/:id/security', async (request, reply) => {
     const { id } = request.params as { id: string };

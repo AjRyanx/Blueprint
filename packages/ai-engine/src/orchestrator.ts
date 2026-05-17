@@ -15,12 +15,12 @@ export class Orchestrator {
   private dataAgent: DataAgent;
   private securityAgent: SecurityAgent;
 
-  constructor(aiClient: AIClient) {
-    this.intakeAgent = new IntakeAgent(aiClient as any);
-    this.requirementsAgent = new RequirementsAgent(aiClient as any);
-    this.architectureAgent = new ArchitectureAgent(aiClient as any);
-    this.dataAgent = new DataAgent(aiClient as any);
-    this.securityAgent = new SecurityAgent(aiClient as any);
+  constructor(private geminiClient: GeminiClient, private groqClient: GroqClient) {
+    this.intakeAgent = new IntakeAgent(this.geminiClient);
+    this.requirementsAgent = new RequirementsAgent(this.geminiClient);
+    this.architectureAgent = new ArchitectureAgent(this.groqClient);
+    this.dataAgent = new DataAgent(this.groqClient);
+    this.securityAgent = new SecurityAgent(this.geminiClient);
   }
 
   async processPhase1Intake(
