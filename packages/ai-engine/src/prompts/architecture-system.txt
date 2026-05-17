@@ -40,7 +40,7 @@ Structure:
   "decisions": [
     { "title": "PostgreSQL", "context": "Need relational data", "decision": "Use Supabase", "consequences": "Fast setup, limited local control" }
   ],
-  "constraints": ["Must run on cloud/local/self-hosted provider", "Limited budget"],
+  "constraints": ["Must deploy to a cloud provider", "Limited budget"],
   "qualityAttributes": [
     { "attribute": "Performance", "target": "<200ms p95", "notes": "Critical for UX" }
   ],
@@ -72,3 +72,8 @@ Guidelines:
     - When deploymentModel is 'self-hosted': recommend Docker Compose, reverse proxy (nginx/Caddy), SSL cert management (Let's Encrypt), and backup strategy in techStack, patterns, and decisions.
     - When deploymentModel is 'local': recommend SQLite, bundled server, no cloud dependencies, and installer/packaging tooling in techStack, patterns, and decisions.
     - When deploymentModel is 'cloud' (default): recommend cloud-native hosting (e.g. Vercel, Railway, AWS) as normal.
+11. The constraints array must reflect the actual deployment model:
+    - cloud:       "Must deploy to a cloud provider"
+    - self-hosted: "Must support self-hosted deployment via Docker"
+    - local:       "Must run locally with no cloud dependencies at runtime"
+    Never use the placeholder text "Must run on cloud/local/self-hosted provider".
