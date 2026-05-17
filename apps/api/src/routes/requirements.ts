@@ -54,12 +54,10 @@ export async function requirementsRoutes(fastify: FastifyInstance) {
     const briefText = JSON.stringify(brief);
     let storiesJson = await orchestrator.generateRequirements(briefText);
     
-    // Clean up potential markdown or surrounding text
-    storiesJson = storiesJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-    const firstBracket = storiesJson.indexOf('[');
-    const lastBracket = storiesJson.lastIndexOf(']');
-    if (firstBracket !== -1 && lastBracket !== -1) {
-      storiesJson = storiesJson.slice(firstBracket, lastBracket + 1);
+    // Clean up potential markdown, surrounding conversational text, or trailing characters
+    storiesJson = storiesJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    if (storiesJson.includes('[') && storiesJson.includes(']')) {
+      storiesJson = storiesJson.replace(/^[^\[]*\[/, '[').replace(/\][^\]]*$/, ']');
     }
 
     let stories: any[];

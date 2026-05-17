@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { GraduationCap, Briefcase, BarChart3, ArrowRight, Sparkles, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Briefcase, BarChart3, ArrowRight, Sparkles, ArrowLeft, Globe, Terminal } from 'lucide-react';
 import { useCreateProject } from '@/hooks/use-project';
 import { toast } from 'sonner';
 
@@ -56,6 +56,7 @@ export function WelcomeScreen() {
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+  const [targetPlatform, setTargetPlatform] = useState<'web' | 'cli'>('web');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export function WelcomeScreen() {
       const project = await createProject.mutateAsync({
         name: projectName,
         description: projectDescription || undefined,
+        targetPlatform,
       });
       toast.success('Project created successfully!');
       router.push(`/projects/${project.id}/intake`);
@@ -174,6 +176,44 @@ export function WelcomeScreen() {
                     onChange={(e) => setProjectName(e.target.value)}
                     className="h-11 border-border/60 bg-background/50 focus-visible:ring-primary focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 transition-all"
                   />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold tracking-wide">
+                    Target Platform
+                  </Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div
+                      onClick={() => setTargetPlatform('web')}
+                      className={cn(
+                        "flex items-start gap-3 p-4 rounded-xl border border-border/50 bg-card/25 backdrop-blur-sm cursor-pointer hover:border-primary/40 hover:bg-card/40 transition-all",
+                        targetPlatform === 'web' && "border-primary bg-primary/5 ring-1 ring-primary/20"
+                      )}
+                    >
+                      <Globe className={cn("h-5 w-5 shrink-0 mt-0.5", targetPlatform === 'web' ? "text-primary" : "text-muted-foreground")} />
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold leading-none">Web App</p>
+                        <p className="text-xs text-muted-foreground font-light leading-normal">
+                          A website, web application, or API service.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      onClick={() => setTargetPlatform('cli')}
+                      className={cn(
+                        "flex items-start gap-3 p-4 rounded-xl border border-border/50 bg-card/25 backdrop-blur-sm cursor-pointer hover:border-primary/40 hover:bg-card/40 transition-all",
+                        targetPlatform === 'cli' && "border-primary bg-primary/5 ring-1 ring-primary/20"
+                      )}
+                    >
+                      <Terminal className={cn("h-5 w-5 shrink-0 mt-0.5", targetPlatform === 'cli' ? "text-primary" : "text-muted-foreground")} />
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold leading-none">CLI Tool</p>
+                        <p className="text-xs text-muted-foreground font-light leading-normal">
+                          A command-line tool or terminal application.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="project-desc" className="text-sm font-semibold tracking-wide">

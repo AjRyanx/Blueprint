@@ -30,6 +30,12 @@ type ArchitectureData = {
   constraints: string[];
   qualityAttributes: QualityAttr[];
   diagrams: string;
+  needsDatabase?: boolean;
+  needsServer?: boolean;
+  serverNotes?: string;
+  needsAuth?: boolean;
+  targetPlatform?: 'web' | 'cli';
+  deploymentModel?: 'cloud' | 'self-hosted' | 'local';
 };
 
 const emptyData: ArchitectureData = {
@@ -40,6 +46,12 @@ const emptyData: ArchitectureData = {
   constraints: [],
   qualityAttributes: [],
   diagrams: '',
+  needsDatabase: true,
+  needsServer: true,
+  serverNotes: '',
+  needsAuth: true,
+  targetPlatform: 'web',
+  deploymentModel: 'cloud',
 };
 
 async function fetchArchitecture(projectId: string, token: string) {
@@ -108,20 +120,27 @@ export function ArchitectureDesigner({ projectId }: Props) {
 
   const completeMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${API}/api/v1/projects/${projectId}`, {
+      const res = await fetch(`${API}/api/v1/projects/${projectId}/phase`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ currentPhase: 4 }),
+        body: JSON.stringify({ toPhase: 4 }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      return json.data;
+      return json;
     },
-    onSuccess: () => {
+    onSuccess: (resJson) => {
+      const nextPhase = resJson.nextPhase ?? 4;
       toast.success('Architecture phase completed!');
-      setCurrentPhase(4);
+      setCurrentPhase(nextPhase);
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      router.push(`/projects/${projectId}/data`);
+      
+      if (resJson.phase4 === 'skipped' || nextPhase === 5) {
+        toast.info('Data modelling skipped (stateless project). Redirecting to Security Planning.');
+        router.push(`/projects/${projectId}/security`);
+      } else {
+        router.push(`/projects/${projectId}/data`);
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -176,6 +195,123 @@ export function ArchitectureDesigner({ projectId }: Props) {
         </div>
       </div>
 
+      {form.needsServer === false && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-xl p-4 flex items-center justify-between backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+              <span className="text-base font-bold font-mono">i</span>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-amber-500">Frontend-Only Architecture Active</h4>
+              <p className="text-xs text-muted-foreground">This project does not require a custom backend server. Backend and Database layers are hidden.</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-amber-500/20 text-amber-500 hover:bg-amber-500/10 bg-amber-500/5 font-medium transition-all duration-200 shrink-0"
+            onClick={async () => {
+              try {
+                const res = await fetch(`${API}/api/v1/projects/${projectId}/architecture/enable-server`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error);
+                toast.success('Backend server successfully re-enabled!');
+                queryClient.invalidateQueries({ queryKey: ['architecture', projectId] });
+                queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+                setLocal(null);
+              } catch (err: any) {
+                toast.error(err.message || 'Failed to re-enable backend server');
+              }
+            }}
+          >
+            Re-enable Backend Server
+          </Button>
+        </div>
+      )}
+
+      <Card className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-indigo-500/10 shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <span>Project Scope Controls</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-md">
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-slate-200">Requires User Accounts?</Label>
+                <p className="text-xs text-muted-foreground leading-normal">Infer features like NextAuth, JWT sessions, security gates, and sign-in tasks.</p>
+              </div>
+              <input
+                type="checkbox"
+                id="needsAuthToggle"
+                checked={form.needsAuth !== false}
+                onChange={(e) => update({ needsAuth: e.target.checked })}
+                className="w-5 h-5 accent-indigo-500 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer shrink-0 ml-4"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-md">
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-slate-200">Requires Database?</Label>
+                <p className="text-xs text-muted-foreground leading-normal">Check this to require persistent storage. Turning off will skip Phase 4 (Data Modelling).</p>
+              </div>
+              <input
+                type="checkbox"
+                id="needsDatabaseToggle"
+                checked={form.needsDatabase !== false}
+                onChange={(e) => update({ needsDatabase: e.target.checked })}
+                className="w-5 h-5 accent-indigo-500 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer shrink-0 ml-4"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-md">
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-slate-200">Requires Backend Server?</Label>
+                <p className="text-xs text-muted-foreground leading-normal">Uncheck if you only need static hosting and browser-only tech recommendations.</p>
+              </div>
+              <input
+                type="checkbox"
+                id="needsServerToggle"
+                checked={form.needsServer !== false}
+                onChange={(e) => update({ needsServer: e.target.checked })}
+                className="w-5 h-5 accent-indigo-500 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer shrink-0 ml-4"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-700/50 pt-6 space-y-3">
+            <div className="flex flex-col space-y-1">
+              <Label className="text-sm font-semibold text-slate-200">Deployment Model</Label>
+              <p className="text-xs text-muted-foreground">Select how the project will be provisioned, packaged, and hosted.</p>
+            </div>
+            <div className="inline-flex p-1 bg-slate-950/60 rounded-xl border border-slate-700/40 backdrop-blur-md">
+              {[
+                { value: 'cloud', label: 'Cloud ☁️' },
+                { value: 'self-hosted', label: 'Self-Hosted 🏢' },
+                { value: 'local', label: 'Local 💻' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => update({ deploymentModel: opt.value as any })}
+                  className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                    (form.deploymentModel ?? 'cloud') === opt.value
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle className="text-base">System Overview</CardTitle></CardHeader>
         <CardContent>
@@ -190,13 +326,63 @@ export function ArchitectureDesigner({ projectId }: Props) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Technology Stack</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <span>Technology Stack</span>
+            {form.targetPlatform === 'cli' ? (
+              <Badge variant="outline" className="text-[10px] text-primary border-primary/20 bg-primary/5 font-sans flex items-center gap-1.5 px-2.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                CLI Stack
+              </Badge>
+            ) : form.needsServer === false ? (
+              <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/20 bg-amber-500/5 font-sans flex items-center gap-1.5 px-2.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Frontend-Only
+              </Badge>
+            ) : form.needsDatabase === false ? (
+              <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/20 bg-amber-500/5 font-sans flex items-center gap-1.5 px-2.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Stateless Stack
+              </Badge>
+            ) : null}
+          </CardTitle>
           <Button variant="outline" size="sm" onClick={() => update({ techStack: [...form.techStack, { category: '', items: [{ name: '', version: '', notes: '' }] }] })}>
             <Plus className="h-4 w-4 mr-1" /> Add Category
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {form.techStack.map((cat, ci) => (
+          {form.techStack.map((cat, ci) => {
+            if (form.targetPlatform === 'cli') {
+              const lower = cat.category.toLowerCase();
+              if (
+                lower.includes('frontend') ||
+                lower.includes('database') ||
+                lower.includes('infrastructure') ||
+                lower.includes('devops') ||
+                lower.includes('api') ||
+                lower.includes('server')
+              ) {
+                return null;
+              }
+            } else if (form.needsServer === false) {
+              const lower = cat.category.toLowerCase();
+              if (
+                lower.includes('backend') ||
+                lower.includes('database') ||
+                lower.includes('infrastructure') ||
+                lower.includes('devops') ||
+                lower.includes('api') ||
+                lower.includes('server')
+              ) {
+                return null;
+              }
+            }
+            if (form.needsAuth === false) {
+              const lower = cat.category.toLowerCase();
+              if (lower.includes('auth') || (lower.includes('security') && lower.includes('user'))) {
+                return null;
+              }
+            }
+            return (
             <div key={ci} className="border rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <Input
@@ -254,7 +440,8 @@ export function ArchitectureDesigner({ projectId }: Props) {
                 <Plus className="h-3 w-3 mr-1" /> Add Item
               </Button>
             </div>
-          ))}
+          );
+        })}
         </CardContent>
       </Card>
 

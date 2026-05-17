@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { projects } from './projects';
 
@@ -11,6 +11,11 @@ export const architectureDesigns = pgTable('architecture_designs', {
     .references(() => projects.id, { onDelete: 'cascade' })
     .unique(),
   overview: text('overview'),
+  needsDatabase: boolean('needs_database').default(true).notNull(),
+  persistenceNotes: text('persistence_notes'),
+  needsServer: boolean('needs_server').default(true).notNull(),
+  serverNotes: text('server_notes'),
+  targetPlatform: text('target_platform').default('web').notNull(),
   techStack: jsonb('tech_stack').notNull().default([]),
   patterns: jsonb('patterns').notNull().default([]),
   decisions: jsonb('decisions').notNull().default([]),

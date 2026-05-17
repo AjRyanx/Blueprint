@@ -138,16 +138,16 @@ ${(b.successMetrics || []).map((x: string) => `* ${x}`).join('\n')}
 This document details the complete functional scope and prioritization of features mapped for development.
 
 ## 1. Must Have (Critical Scope)
-${musts.length > 0 ? musts.map((r: any) => `* **[${r.status}]** As a user, I want to ${r.userStory}`).join('\n') : '*No critical requirements assigned yet.*'}
+${musts.length > 0 ? musts.map((r: any) => `* **[${r.status}]** ${r.userStory}`).join('\n') : '*No critical requirements assigned yet.*'}
 
 ## 2. Should Have (High Priority)
-${shoulds.length > 0 ? shoulds.map((r: any) => `* **[${r.status}]** As a user, I want to ${r.userStory}`).join('\n') : '*No high priority requirements assigned yet.*'}
+${shoulds.length > 0 ? shoulds.map((r: any) => `* **[${r.status}]** ${r.userStory}`).join('\n') : '*No high priority requirements assigned yet.*'}
 
 ## 3. Could Have (Nice to Have)
-${coulds.length > 0 ? coulds.map((r: any) => `* **[${r.status}]** As a user, I want to ${r.userStory}`).join('\n') : '*No minor requirements assigned yet.*'}
+${coulds.length > 0 ? coulds.map((r: any) => `* **[${r.status}]** ${r.userStory}`).join('\n') : '*No minor requirements assigned yet.*'}
 
 ## 4. Won't Have (Deferred Scope)
-${wonts.length > 0 ? wonts.map((r: any) => `* **[${r.status}]** As a user, I want to ${r.userStory}`).join('\n') : '*No deferred requirements assigned yet.*'}
+${wonts.length > 0 ? wonts.map((r: any) => `* **[${r.status}]** ${r.userStory}`).join('\n') : '*No deferred requirements assigned yet.*'}
 `;
       triggerDownload(`${pName.toLowerCase().replace(/\s+/g, '-')}-requirements.md`, content);
       toast.success('Requirements Specification downloaded!');
@@ -167,7 +167,7 @@ ${wonts.length > 0 ? wonts.map((r: any) => `* **[${r.status}]** As a user, I wan
         credentials: 'include',
       });
       const json = await res.json();
-      if (!json.success || !json.data || !json.data.components || json.data.components.length === 0) {
+      if (!json.success || !json.data) {
         throw new Error('Architecture models have not been completed yet.');
       }
       const arch = json.data;
@@ -179,18 +179,28 @@ ${wonts.length > 0 ? wonts.map((r: any) => `* **[${r.status}]** As a user, I wan
       const pJson = await pRes.json();
       const pName = pJson.data?.name || 'Project';
 
-      const content = `# Architecture Design Document: ${pName}
+      let content = `# Architecture Design Document: ${pName}
 
-## 1. System Components
-${arch.components.map((c: any) => `### ${c.name}
-* **Type**: ${c.type}
-* **Technology**: ${c.technology}
-* **Description**: ${c.description}
-`).join('\n')}
+## 1. High-Level Overview
+${arch.overview || 'No high-level overview provided.'}
 
-## 2. Infrastructure & Notes
-${arch.notes || 'No infrastructure design notes submitted yet.'}
+## 2. Technology Stack
+${(arch.techStack || []).map((cat: any) => `### ${cat.category}
+${(cat.items || []).map((item: any) => `* **${item.name}** (v${item.version || 'latest'}): ${item.notes || ''}`).join('\n')}
+`).join('\n\n')}
+
+## 3. Architectural Patterns
+${(arch.patterns || []).map((pat: any) => `* **${pat.name}**: ${pat.description || ''} *(Rationale: ${pat.rationale || ''})*`).join('\n')}
+
+## 4. Key Design Decisions
+${(arch.decisions || []).map((dec: any) => `* **${dec.title}**: ${dec.decision || ''} *(Context: ${dec.context || ''}, Consequences: ${dec.consequences || ''})*`).join('\n')}
+
+## 5. Technical Constraints
+${(arch.constraints || []).map((c: string) => `* ${c}`).join('\n')}
 `;
+      if (arch.diagrams) {
+        content += `\n## 6. Architecture Diagram (Mermaid)\n\`\`\`mermaid\n${arch.diagrams}\n\`\`\`\n`;
+      }
       triggerDownload(`${pName.toLowerCase().replace(/\s+/g, '-')}-architecture.md`, content);
       toast.success('Architecture Design downloaded!');
     } catch (err: any) {
@@ -273,7 +283,7 @@ ${arch.notes || 'No infrastructure design notes submitted yet.'}
         credentials: 'include',
       });
       const json = await res.json();
-      if (!json.success || !json.data || !json.data.checks || json.data.checks.length === 0) {
+      if (!json.success || !json.data || !json.data.checklist || json.data.checklist.length === 0) {
         throw new Error('Security checks have not been completed yet.');
       }
       const sec = json.data;
@@ -290,14 +300,14 @@ ${arch.notes || 'No infrastructure design notes submitted yet.'}
 This audit scans system components and evaluates risk compliance vectors.
 
 ## 1. Compliance Checklist
-${sec.checks.map((c: any) => `* **[${c.status === 'passed' ? 'PASS' : 'WARN'}]** ${c.name}
+${sec.checklist.map((c: any) => `* **[${c.passed ? 'PASS' : 'WARN'}]** ${c.title}
   *Category: ${c.category}*
   *Description: ${c.description}*
-  ${c.recommendation ? `*Mitigation: ${c.recommendation}*` : ''}
 `).join('\n')}
 
-## 2. Global Scanner Audit Note
-${sec.notes || 'No custom threat vectors reported.'}
+## 2. Security Details
+* **Signed Off At**: ${sec.signedOffAt ? new Date(sec.signedOffAt).toLocaleString() : 'Pending'}
+* **Signed Off By**: ${sec.signedOffBy ? 'Authorized Engineer' : 'Pending'}
 `;
       triggerDownload(`${pName.toLowerCase().replace(/\s+/g, '-')}-security-compliance.md`, content);
       toast.success('Security Audit downloaded!');
@@ -336,8 +346,7 @@ This document serves as your stage-by-stage software implementation checklist.
 
 ## 1. Phase Tasks Checklist
 ${tasks.map((t: any) => `* **[${t.status === 'completed' ? 'x' : ' '}] ${t.title}**
-  *Complexity: ${t.complexity}*
-  *Description: ${t.description}*
+  *Objective: ${t.objective}*
 `).join('\n')}
 `;
       triggerDownload(`${pName.toLowerCase().replace(/\s+/g, '-')}-roadmap.md`, content);
@@ -403,7 +412,7 @@ ${tasks.map((t: any) => `* **[${t.status === 'completed' ? 'x' : ' '}] ${t.title
           masterMd += `| ID | Status | Requirement User Story |\n`;
           masterMd += `| :---: | :---: | :--- |\n`;
           reqs.forEach((r: any, idx: number) => {
-            masterMd += `| R-${idx+1} | \`${r.priority.toUpperCase()}\` | As a user, I want to ${r.userStory} |\n`;
+            masterMd += `| R-${idx+1} | \`${r.priority.toUpperCase()}\` | ${r.userStory} |\n`;
           });
           masterMd += `\n`;
         } else {
@@ -421,18 +430,43 @@ ${tasks.map((t: any) => `* **[${t.status === 'completed' ? 'x' : ' '}] ${t.title
           credentials: 'include',
         });
         const aJson = await aRes.json();
-        if (aJson.success && aJson.data && aJson.data.components && aJson.data.components.length > 0) {
+        if (aJson.success && aJson.data) {
           const arch = aJson.data;
-          arch.components.forEach((c: any) => {
-            masterMd += `### Component: ${c.name}\n`;
-            masterMd += `* **Stack**: \`${c.technology}\` (${c.type})\n`;
-            masterMd += `* **Details**: ${c.description}\n\n`;
+          masterMd += `### High-Level Overview\n${arch.overview || 'No high-level overview provided.'}\n\n`;
+          masterMd += `### Technology Stack\n`;
+          (arch.techStack || []).forEach((cat: any) => {
+            masterMd += `#### ${cat.category}\n`;
+            (cat.items || []).forEach((item: any) => {
+              masterMd += `* **${item.name}** (v${item.version || 'latest'}): ${item.notes || ''}\n`;
+            });
+            masterMd += `\n`;
           });
-          if (arch.notes) {
-            masterMd += `### Architecture Notes\n${arch.notes}\n\n`;
+          if (arch.patterns && arch.patterns.length > 0) {
+            masterMd += `### Architectural Patterns\n`;
+            arch.patterns.forEach((pat: any) => {
+              masterMd += `* **${pat.name}**: ${pat.description || ''} *(Rationale: ${pat.rationale || ''})*\n`;
+            });
+            masterMd += `\n`;
+          }
+          if (arch.decisions && arch.decisions.length > 0) {
+            masterMd += `### Key Design Decisions\n`;
+            arch.decisions.forEach((dec: any) => {
+              masterMd += `* **${dec.title}**: ${dec.decision || ''} *(Context: ${dec.context || ''}, Consequences: ${dec.consequences || ''})*\n`;
+            });
+            masterMd += `\n`;
+          }
+          if (arch.constraints && arch.constraints.length > 0) {
+            masterMd += `### Technical Constraints\n`;
+            arch.constraints.forEach((c: string) => {
+              masterMd += `* ${c}\n`;
+            });
+            masterMd += `\n`;
+          }
+          if (arch.diagrams) {
+            masterMd += `### Architecture Diagram (Mermaid)\n\`\`\`mermaid\n${arch.diagrams}\n\`\`\`\n\n`;
           }
         } else {
-          masterMd += `*No system components mapped.*\n\n`;
+          masterMd += `*No system architecture mapped yet.*\n\n`;
         }
       } catch {
         masterMd += `*No architecture specification found.*\n\n`;
@@ -440,40 +474,44 @@ ${tasks.map((t: any) => `* **[${t.status === 'completed' ? 'x' : ' '}] ${t.title
 
       // Add Phase 4: Database Model
       masterMd += `## 4. DATABASE & DATA SCHEMAS\n\n`;
-      try {
-        const dRes = await fetch(`${API}/api/v1/projects/${projectId}/data`, {
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: 'include',
-        });
-        const dJson = await dRes.json();
-        if (dJson.success && dJson.data && dJson.data.entities && dJson.data.entities.length > 0) {
-          const dm = dJson.data;
-          
-          dm.entities.forEach((entity: any) => {
-            masterMd += `### Entity: ${entity.name}\n`;
-            masterMd += `*Description: ${entity.description || 'No description provided.'}*\n\n`;
-            masterMd += `| Field | Type | Required | Unique |\n`;
-            masterMd += `| :--- | :--- | :---: | :---: |\n`;
-            entity.attributes.forEach((attr: any) => {
-              masterMd += `| \`${attr.name}\` | \`${attr.type}\` | ${attr.required ? 'Yes' : 'No'} | ${attr.unique ? 'Yes' : 'No'} |\n`;
-            });
-            masterMd += `\n`;
+      if (!p.needsDatabase) {
+        masterMd += `*This project operates stateless or uses local file-system persistence (no relational database model is required).* \n\n`;
+      } else {
+        try {
+          const dRes = await fetch(`${API}/api/v1/projects/${projectId}/data`, {
+            headers: { Authorization: `Bearer ${token}` },
+            credentials: 'include',
           });
-
-          if (dm.relationships && dm.relationships.length > 0) {
-            masterMd += `### Relationships Map\n\n`;
-            masterMd += `| Entity Source | Rel Type | Target Entity | Name |\n`;
-            masterMd += `| :---: | :---: | :---: | :--- |\n`;
-            dm.relationships.forEach((rel: any) => {
-              masterMd += `| \`${rel.source}\` | \`${rel.type}\` | \`${rel.target}\` | ${rel.name} |\n`;
+          const dJson = await dRes.json();
+          if (dJson.success && dJson.data && dJson.data.entities && dJson.data.entities.length > 0) {
+            const dm = dJson.data;
+            
+            dm.entities.forEach((entity: any) => {
+              masterMd += `### Entity: ${entity.name}\n`;
+              masterMd += `*Description: ${entity.description || 'No description provided.'}*\n\n`;
+              masterMd += `| Field | Type | Required | Unique |\n`;
+              masterMd += `| :--- | :--- | :---: | :---: |\n`;
+              entity.attributes.forEach((attr: any) => {
+                masterMd += `| \`${attr.name}\` | \`${attr.type}\` | ${attr.required ? 'Yes' : 'No'} | ${attr.unique ? 'Yes' : 'No'} |\n`;
+              });
+              masterMd += `\n`;
             });
-            masterMd += `\n`;
+
+            if (dm.relationships && dm.relationships.length > 0) {
+              masterMd += `### Relationships Map\n\n`;
+              masterMd += `| Entity Source | Rel Type | Target Entity | Name |\n`;
+              masterMd += `| :---: | :---: | :---: | :--- |\n`;
+              dm.relationships.forEach((rel: any) => {
+                masterMd += `| \`${rel.source}\` | \`${rel.type}\` | \`${rel.target}\` | ${rel.name} |\n`;
+              });
+              masterMd += `\n`;
+            }
+          } else {
+            masterMd += `*No database model declared.*\n\n`;
           }
-        } else {
-          masterMd += `*No database model declared.*\n\n`;
+        } catch {
+          masterMd += `*No database schema found.*\n\n`;
         }
-      } catch {
-        masterMd += `*No database schema found.*\n\n`;
       }
 
       // Add Phase 5: Security Report
@@ -484,16 +522,15 @@ ${tasks.map((t: any) => `* **[${t.status === 'completed' ? 'x' : ' '}] ${t.title
           credentials: 'include',
         });
         const sJson = await sRes.json();
-        if (sJson.success && sJson.data && sJson.data.checks && sJson.data.checks.length > 0) {
+        if (sJson.success && sJson.data && sJson.data.checklist && sJson.data.checklist.length > 0) {
           const sec = sJson.data;
-          sec.checks.forEach((c: any) => {
-            masterMd += `* **[${c.status.toUpperCase()}]** ${c.name} (${c.category})\n`;
-            masterMd += `  *Description*: ${c.description}\n`;
-            if (c.recommendation) {
-              masterMd += `  *Mitigation*: ${c.recommendation}\n`;
-            }
-            masterMd += `\n`;
+          sec.checklist.forEach((c: any) => {
+            masterMd += `* **[${c.passed ? 'PASS' : 'WARN'}]** ${c.title} (${c.category})\n`;
+            masterMd += `  *Description*: ${c.description}\n\n`;
           });
+          if (sec.signedOffAt) {
+            masterMd += `* **Signed Off At**: ${new Date(sec.signedOffAt).toLocaleString()}\n`;
+          }
         } else {
           masterMd += `*No security scans processed.*\n\n`;
         }
@@ -512,8 +549,8 @@ ${tasks.map((t: any) => `* **[${t.status === 'completed' ? 'x' : ' '}] ${t.title
         if (tJson.success && tJson.data && tJson.data.length > 0) {
           const tasks = tJson.data;
           tasks.forEach((t: any, idx: number) => {
-            masterMd += `* [${t.status === 'completed' ? 'x' : ' '}] **T-${idx+1}: ${t.title}** (${t.complexity} Complexity)\n`;
-            masterMd += `  *Description*: ${t.description}\n\n`;
+            masterMd += `* [${t.status === 'completed' ? 'x' : ' '}] **T-${idx+1}: ${t.title}**\n`;
+            masterMd += `  *Objective*: ${t.objective}\n\n`;
           });
         } else {
           masterMd += `*No implementation roadmap tasks configured.*\n\n`;

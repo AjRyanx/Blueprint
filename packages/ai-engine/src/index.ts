@@ -6,4 +6,4 @@ export { DataAgent } from './agents/data-agent.js';
 export { SecurityAgent } from './agents/security-agent.js';
 export { GeminiClient } from './llm/gemini-client.js';
 export { GroqClient } from './llm/groq-client.js';
-export { buildPrompt, generateTaskTitle, generateTaskObjective, generateAcceptanceCriteria } from './templates/code-prompt.js';
+export { buildPrompt, generateTaskTitle, generateTaskObjective, generateAcceptanceCriteria, assembleRoleAndContext } from './templates/code-prompt.js';

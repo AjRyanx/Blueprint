@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   Lightbulb,
   FileText,
@@ -15,6 +16,8 @@ import {
   Code,
   CheckCircle2,
   Lock,
+  EyeOff,
+  RefreshCw,
 } from 'lucide-react';
 
 const phaseIcons = [Lightbulb, FileText, LayoutDashboard, Database, Shield, Code];
@@ -32,7 +35,7 @@ const statusIcon = {
   completed: CheckCircle2,
   active: null,
   locked: Lock,
-  skipped: Lock,
+  skipped: EyeOff,
 };
 
 const phaseRoutes = ['intake', 'requirements', 'architecture', 'data', 'security', 'implement'];
@@ -43,6 +46,8 @@ export function PhaseSidebar() {
   const projectId = params.id as string;
   const { phases, currentPhase, setCurrentPhase, sidebarOpen } = useProjectStore();
   const [isMounted, setIsMounted] = useState(false);
+  const { data: session } = useSession();
+  const token = (session?.user as any)?.accessToken;
 
   useEffect(() => {
     setIsMounted(true);
@@ -68,7 +73,8 @@ export function PhaseSidebar() {
             const Icon = phaseIcons[i] || Code;
             const StatusIcon = statusIcon[phase.status];
             const isActive = phase.phase === currentPhase;
-            const isClickable = phase.status === 'active' || phase.status === 'completed';
+            const isSkipped = phase.status === 'skipped';
+            const isClickable = phase.status === 'active' || phase.status === 'completed' || isSkipped;
 
             return (
               <Button
@@ -79,6 +85,8 @@ export function PhaseSidebar() {
                   'relative w-full justify-start gap-3 h-auto py-3 px-3.5 rounded-xl border border-transparent transition-all duration-300 group',
                   isActive 
                     ? 'bg-primary/10 border-primary/20 text-foreground font-semibold shadow-sm' 
+                    : isSkipped
+                    ? 'hover:bg-amber-500/5 text-muted-foreground/60 hover:text-foreground'
                     : isClickable
                     ? 'hover:bg-accent/40 text-muted-foreground hover:text-foreground'
                     : 'opacity-40 cursor-not-allowed text-muted-foreground/60',
@@ -95,26 +103,70 @@ export function PhaseSidebar() {
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
                 )}
 
-                <span className={cn(
-                  "relative flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-transform duration-300",
-                  isActive ? "bg-primary text-primary-foreground scale-100" : "bg-secondary text-muted-foreground group-hover:scale-105"
-                )}>
-                  <Icon className="h-4 w-4" />
-                  {StatusIcon && (
-                    <StatusIcon
-                      className={cn(
-                        'h-3.5 w-3.5 absolute -top-1 -right-1 rounded-full bg-background',
-                        phase.status === 'completed' && 'text-emerald-500 fill-emerald-500/10',
-                        phase.status === 'locked' && 'text-muted-foreground',
+                {isSkipped ? (
+                  <div className="flex items-center justify-between w-full pr-1">
+                    <div className="flex items-center gap-3">
+                      <span className="relative flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-secondary/40 text-muted-foreground/40">
+                        <Icon className="h-4 w-4" />
+                        <EyeOff className="h-3 w-3 absolute -top-1 -right-1 text-amber-500 fill-amber-500/10 rounded-full bg-background" />
+                      </span>
+                      <div className="flex flex-col items-start text-left opacity-85">
+                        <span className="text-xs font-semibold tracking-tight text-muted-foreground/60">{phaseLabels[i]}</span>
+                        <span className="text-[9px] text-amber-500 font-medium font-sans">Not required</span>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 rounded-md hover:bg-amber-500/15 text-amber-500 hover:text-amber-600 transition-colors"
+                      title="Re-enable Data Modelling"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const API = process.env.NEXT_PUBLIC_API_URL || '';
+                          const res = await fetch(`${API}/api/v1/projects/${projectId}/phases/enable`, {
+                            method: 'POST',
+                            headers: { 
+                              'Content-Type': 'application/json',
+                              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
+                            body: JSON.stringify({ phase: 4 })
+                          });
+                          if (res.ok) {
+                            window.location.reload();
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                    >
+                      <RefreshCw className="h-3 w-3 hover:animate-spin" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <span className={cn(
+                      "relative flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-transform duration-300",
+                      isActive ? "bg-primary text-primary-foreground scale-100" : "bg-secondary text-muted-foreground group-hover:scale-105"
+                    )}>
+                      <Icon className="h-4 w-4" />
+                      {StatusIcon && (
+                        <StatusIcon
+                          className={cn(
+                            'h-3.5 w-3.5 absolute -top-1 -right-1 rounded-full bg-background',
+                            phase.status === 'completed' && 'text-emerald-500 fill-emerald-500/10',
+                            phase.status === 'locked' && 'text-muted-foreground',
+                          )}
+                        />
                       )}
-                    />
-                  )}
-                </span>
-                
-                <div className="flex flex-col items-start text-left">
-                  <span className="text-xs font-semibold tracking-tight">{phaseLabels[i]}</span>
-                  <span className="text-[9px] text-muted-foreground/80 font-mono">Gateway {phase.phase}</span>
-                </div>
+                    </span>
+                    
+                    <div className="flex flex-col items-start text-left">
+                      <span className="text-xs font-semibold tracking-tight">{phaseLabels[i]}</span>
+                      <span className="text-[9px] text-muted-foreground/80 font-mono">Gateway {phase.phase}</span>
+                    </div>
+                  </>
+                )}
               </Button>
             );
           })}

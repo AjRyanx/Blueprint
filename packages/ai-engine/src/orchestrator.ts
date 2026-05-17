@@ -13,8 +13,8 @@ export class Orchestrator {
   private securityAgent: SecurityAgent;
 
   constructor(private geminiClient: GeminiClient, private groqClient: GroqClient) {
-    this.intakeAgent = new IntakeAgent(this.geminiClient);
-    this.requirementsAgent = new RequirementsAgent(this.geminiClient);
+    this.intakeAgent = new IntakeAgent(this.groqClient);
+    this.requirementsAgent = new RequirementsAgent(this.groqClient);
     this.architectureAgent = new ArchitectureAgent(this.groqClient);
     this.dataAgent = new DataAgent(this.groqClient);
     this.securityAgent = new SecurityAgent(this.geminiClient);
@@ -42,15 +42,49 @@ export class Orchestrator {
   async generateSecurityChecklist(
     brief: string,
     requirements: string,
+    needsDatabase: boolean = true,
+    needsServer: boolean = true,
+    targetPlatform: string = 'web',
+    needsAuth: boolean = true,
+    deploymentModel: string = 'cloud'
   ) {
-    return this.securityAgent.generateChecklist(brief, requirements);
+    return this.securityAgent.generateChecklist(
+      brief,
+      requirements,
+      needsDatabase,
+      needsServer,
+      targetPlatform,
+      needsAuth,
+      deploymentModel
+    );
   }
 
-  async generateArchitecture(brief: string, stories: any[]) {
-    return this.architectureAgent.generateArchitecture(brief, stories);
+  async generateArchitecture(
+    brief: string,
+    stories: any[],
+    needsDatabaseHint: boolean | null,
+    needsServerHint: boolean | null,
+    targetPlatform: string = 'web',
+    needsAuthHint: boolean | null = null,
+    deploymentModel: string = 'cloud'
+  ) {
+    return this.architectureAgent.generateArchitecture(
+      brief,
+      stories,
+      needsDatabaseHint,
+      needsServerHint,
+      targetPlatform,
+      needsAuthHint,
+      deploymentModel
+    );
   }
 
-  async generateDataModel(brief: string, stories: any[]) {
+  async generateDataModel(
+    brief: string,
+    stories: any[],
+    architecture: { needsDatabase: boolean }
+  ) {
+    if (!architecture.needsDatabase) return null;
     return this.dataAgent.generateDataModel(brief, stories);
   }
 

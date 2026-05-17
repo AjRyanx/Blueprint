@@ -149,6 +149,18 @@ export async function chatRoutes(fastify: FastifyInstance) {
         coreValueProposition: raw.coreValueProposition ?? '',
         outOfScope: Array.isArray(raw.outOfScope) ? raw.outOfScope : [],
         successMetrics: Array.isArray(raw.successMetrics) ? raw.successMetrics : [],
+        needsDatabase:
+          raw.needsDatabase === true ? true :
+          raw.needsDatabase === false ? false :
+          null,
+        needsServer:
+          raw.needsServer === true ? true :
+          raw.needsServer === false ? false :
+          null,
+        needsAuth:
+          raw.needsAuth === true ? true :
+          raw.needsAuth === false ? false :
+          null,
       };
 
       const saved = await saveProjectBrief(id, brief);

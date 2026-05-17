@@ -6,6 +6,7 @@ export const createProjectSchema = z.object({
     .min(1, 'Project name is required')
     .max(200, 'Project name too long'),
   description: z.string().max(2000).optional(),
+  targetPlatform: z.enum(['web', 'cli']).optional().default('web'),
 });
 
 export const updateProjectSchema = z.object({

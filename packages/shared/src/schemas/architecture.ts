@@ -32,6 +32,13 @@ export const qualityAttributeSchema = z.object({
 
 export const architectureDesignSchema = z.object({
   overview: z.string().optional().default(''),
+  needsDatabase: z.boolean().default(true),
+  persistenceNotes: z.string().optional().default(''),
+  needsServer: z.boolean().default(true),
+  serverNotes: z.string().optional().default(''),
+  needsAuth: z.boolean().default(true),
+  targetPlatform: z.enum(['web', 'cli']).default('web'),
+  deploymentModel: z.enum(['cloud', 'self-hosted', 'local']).default('cloud'),
   techStack: z.array(techStackCategorySchema).default([]),
   patterns: z.array(patternSchema).default([]),
   decisions: z.array(decisionSchema).default([]),

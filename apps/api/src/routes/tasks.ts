@@ -95,37 +95,173 @@ export async function tasksRoutes(fastify: FastifyInstance) {
     const tasks = [];
     let sequence = 1;
 
+    const needsDatabase = project.needsDatabase;
+    const needsServer = project.needsServer;
+    const needsAuth = project.needsAuth;
+    const targetPlatform = (project.targetPlatform || 'web') as 'web' | 'cli';
+    const deploymentModel = (project.deploymentModel || 'cloud') as 'cloud' | 'self-hosted' | 'local';
+
+    let frontendFramework = 'React';
+    if (architecture?.techStack && Array.isArray(architecture.techStack)) {
+      const frontendCat = (architecture.techStack as any[]).find(
+        (c) => c?.category && c.category.toLowerCase().startsWith('frontend')
+      );
+      if (frontendCat?.items && Array.isArray(frontendCat.items) && frontendCat.items[0]?.name) {
+        frontendFramework = frontendCat.items[0].name;
+      }
+    }
+
     // 1. Add Foundational System Tasks
-    const systemTasks = [
-      {
-        title: 'Project & Database Setup',
-        objective: 'Initialize the project structure, environment variables, and implement the database schema based on the design from Phase 4.',
-        criteria: [
-          'Environment variables are configured correctly',
-          'Database migrations/schemas are implemented and verified',
-          'Connection to the database is established and logged',
-        ],
-      },
-      {
-        title: 'Core Layout & Navigation',
-        objective: 'Implement the main application layout, navigation components, and responsive grid based on the Architecture from Phase 3.',
-        criteria: [
-          'App Shell/Layout component is implemented',
-          'Side navigation reflects all project sections',
-          'Mobile-responsive layout is functional',
-        ],
-      },
-    ];
+    let systemTasks: Array<{ title: string; objective: string; criteria: string[] }> = [];
+
+    if (targetPlatform === 'cli') {
+      systemTasks = [
+        {
+          title: 'CLI Tool Setup',
+          objective: 'Initialise the CLI project with argument parsing, help generation, subcommand routing, and exit code handling.',
+          criteria: [
+            'Running --help displays correct usage information',
+            'Unknown commands and flags produce a clear error on stderr and exit with code 1',
+            'The entry point is correctly configured in package.json bin field',
+            'TypeScript compiles cleanly with strict mode enabled',
+            'Build output is a single executable bundle (tsup/esbuild)',
+          ],
+        }
+      ];
+    } else {
+      let setupTask;
+      if (needsServer === false) {
+        if (deploymentModel === 'self-hosted') {
+          setupTask = {
+            title: 'Static Frontend Setup (Self-Hosted)',
+            objective: `Initialize the static web application structure using ${frontendFramework}, configure local Nginx reverse proxy routing, and establish a containerized Docker configuration for deployment.`,
+            criteria: [
+              'Environment variables are configured correctly',
+              'Static assets, bundler, and Nginx reverse proxy configuration are initialized',
+              'Dockerfile and Docker Compose are configured to serve the static frontend',
+            ],
+          };
+        } else if (deploymentModel === 'local') {
+          setupTask = {
+            title: 'Static Frontend Setup (Local Desktop Bundle)',
+            objective: `Initialize the static web application structure using ${frontendFramework}, configure local execution paths, and set up local dev routing binding strictly to loopback.`,
+            criteria: [
+              'Environment variables and local configuration paths are configured',
+              'Static assets are compiled and local execution boundaries are established',
+              'Server binds strictly to loopback (127.0.0.1) for local host isolation',
+            ],
+          };
+        } else {
+          setupTask = {
+            title: 'Static Frontend Setup',
+            objective: `Initialize the static web application structure using ${frontendFramework}, configure modern CSS and build tool chains, and establish client-side state/routing.`,
+            criteria: [
+              'Environment variables are configured correctly',
+              'Static assets, bundler (Vite/Webpack), and routing are initialized',
+              'Static hosting parameters (CSP meta tags/configuration) are configured',
+            ],
+          };
+        }
+      } else if (needsDatabase) {
+        if (deploymentModel === 'self-hosted') {
+          setupTask = {
+            title: 'Project & Database Setup (Self-Hosted Docker)',
+            objective: 'Initialize the project structure, environment variables, implement the database schema, and establish a local Docker Compose setup with PostgreSQL and Node.js backend services.',
+            criteria: [
+              'Environment variables are configured correctly',
+              'Docker Compose file with database and api services is implemented',
+              'Database migrations/schemas are implemented and verified inside the database container',
+              'Connection to the containerized database is established and logged',
+            ],
+          };
+        } else if (deploymentModel === 'local') {
+          setupTask = {
+            title: 'Project Setup & Local SQLite/Database Setup',
+            objective: 'Initialize the project structure, configure local database storage (SQLite/Local DB), load local config files, and establish bundled execution packaging.',
+            criteria: [
+              'Environment variables and local configuration paths are configured',
+              'Local database schemas and migrations are initialized and verified',
+              'Database is configured to run locally without remote cloud connection dependencies',
+            ],
+          };
+        } else {
+          setupTask = {
+            title: 'Project & Database Setup',
+            objective: 'Initialize the project structure, environment variables, and implement the database schema based on the design from Phase 4.',
+            criteria: [
+              'Environment variables are configured correctly',
+              'Database migrations/schemas are implemented and verified',
+              'Connection to the database is established and logged',
+            ],
+          };
+        }
+      } else {
+        if (deploymentModel === 'self-hosted') {
+          setupTask = {
+            title: 'Project Setup & Self-Hosted Infrastructure',
+            objective: 'Initialize the project structure, establish environment configurations, and configure a Dockerfile and reverse proxy setup for self-hosted server deployment.',
+            criteria: [
+              'Environment variables are configured correctly',
+              'Dockerfile and reverse proxy configurations are initialized',
+              'Base routing and configuration are loaded and verified',
+            ],
+          };
+        } else if (deploymentModel === 'local') {
+          setupTask = {
+            title: 'Project Setup & Local Packaging',
+            objective: 'Initialize the project structure, configure local executable packaging, and verify loopback-only server routing.',
+            criteria: [
+              'Environment variables are configured correctly',
+              'Local configuration file loading is implemented',
+              'Server binds solely to loopback (127.0.0.1) for local isolation',
+            ],
+          };
+        } else {
+          setupTask = {
+            title: 'Project Setup & Core Structure',
+            objective: 'Initialize the project structure, environment variables, and verify base routing and configuration.',
+            criteria: [
+              'Environment variables are configured correctly',
+              'Project structure and workspace boundaries are verified',
+              'Base configuration and environment secrets are loaded',
+            ],
+          };
+        }
+      }
+
+      systemTasks = [
+        setupTask,
+        {
+          title: 'Core Layout & Navigation',
+          objective: 'Implement the main application layout, navigation components, and responsive grid based on the Architecture from Phase 3.',
+          criteria: [
+            'App Shell/Layout component is implemented',
+            'Side navigation reflects all project sections',
+            'Mobile-responsive layout is functional',
+          ],
+        },
+      ];
+    }
 
     for (const sysTask of systemTasks) {
       const context = {
         brief: brief as any,
         requirements: uniqueReqs as any[],
         task: { title: sysTask.title, objective: sysTask.objective, acceptanceCriteria: sysTask.criteria },
-        stack: { backend: 'Node.js/Fastify', database: 'PostgreSQL' },
+        stack: {
+          frontend: targetPlatform === 'cli' ? undefined : frontendFramework,
+          backend: needsServer ? 'Node.js/Fastify' : undefined,
+          database: (needsServer && needsDatabase) ? 'PostgreSQL' : undefined,
+          auth: needsAuth ? 'NextAuth' : undefined
+        },
         architecture: architecture ?? null,
         dataModel: dataModel ?? null,
         security: security ?? null,
+        needsDatabase,
+        needsServer,
+        needsAuth,
+        targetPlatform,
+        deploymentModel,
       };
       const promptText = buildPrompt(context);
 
@@ -152,16 +288,26 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
       const title = generateTaskTitle(req as any);
       const objective = generateTaskObjective(req as any);
-      const criteria = generateAcceptanceCriteria(req as any);
+      const criteria = generateAcceptanceCriteria(req as any, needsDatabase, needsServer, targetPlatform, deploymentModel);
 
       const context = {
         brief: brief as any,
         requirements: uniqueReqs as any[],
         task: { title, objective, acceptanceCriteria: criteria },
-        stack: { backend: 'Node.js/Fastify', database: 'PostgreSQL' },
+        stack: {
+          frontend: targetPlatform === 'cli' ? undefined : frontendFramework,
+          backend: needsServer ? 'Node.js/Fastify' : undefined,
+          database: (needsServer && needsDatabase) ? 'PostgreSQL' : undefined,
+          auth: needsAuth ? 'NextAuth' : undefined
+        },
         architecture: architecture ?? null,
         dataModel: dataModel ?? null,
         security: security ?? null,
+        needsDatabase,
+        needsServer,
+        needsAuth,
+        targetPlatform,
+        deploymentModel,
       };
 
       const promptText = buildPrompt(context);

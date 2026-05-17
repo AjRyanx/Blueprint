@@ -1,4 +1,5 @@
 import { GeminiClient, type StreamCallback } from '../llm/gemini-client.js';
+import { GroqClient } from '../llm/groq-client.js';
 import { truncateToBudget } from '../utils/token-counter.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -7,10 +8,10 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export class RequirementsAgent {
-  private client: GeminiClient;
+  private client: GeminiClient | GroqClient;
   private systemPrompt: string;
 
-  constructor(client: GeminiClient) {
+  constructor(client: GeminiClient | GroqClient) {
     this.client = client;
     try {
       this.systemPrompt = readFileSync(

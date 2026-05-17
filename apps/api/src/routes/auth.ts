@@ -168,7 +168,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const payload = fastify.jwt.verify(token);
+      const payload = fastify.jwt.verify(token) as { userId: string };
       const user = await findUserById(payload.userId);
       if (!user) {
         return reply.status(401).send({ success: false, error: 'User not found' });

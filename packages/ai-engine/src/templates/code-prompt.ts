@@ -65,21 +65,66 @@ export type PromptContext = {
   architecture?: ArchitectureContext | null;
   dataModel?: DataModelContext | null;
   security?: SecurityContext | null;
+  needsDatabase?: boolean;  // defaults to true if absent
+  needsServer?: boolean;    // defaults to true if absent
+  needsAuth?: boolean;      // defaults to true if absent
+  targetPlatform?: 'web' | 'cli';
+  deploymentModel?: 'cloud' | 'self-hosted' | 'local';
 };
 
 const ROLE_TEMPLATE = `You are a senior {stack} developer building {projectName}.`;
 
 const CONTEXT_TEMPLATE = `This system {description}. The project uses {techStack}.`;
 
-const SECURITY_REQUIREMENTS = [
-  'Enforce server-side input validation on all endpoints',
-  'Use parameterised queries to prevent SQL injection',
-  'Never expose stack traces to the client',
-  'Use environment variables for all secrets and configuration',
-  'Implement proper error handling with structured logging',
-];
+function getSecurityRequirements(
+  needsDatabase: boolean = true,
+  needsServer: boolean = true,
+  targetPlatform: string = 'web',
+  needsAuth: boolean = true
+): string[] {
+  if (targetPlatform === 'cli') {
+    return [
+      'Sanitise all CLI arguments before passing to shell commands or subprocesses',
+      'Use absolute paths for subprocess calls — do not rely on PATH resolution',
+      'Never accept secrets as CLI arguments — use environment variables or interactive prompts',
+      'Validate and sanitise all file path arguments to prevent path traversal',
+      'Use environment variables for all configuration and credentials',
+      'Implement proper error handling — write errors to stderr, not stdout',
+    ];
+  }
+  const base = [
+    'Never expose stack traces to the client',
+    'Use environment variables for all secrets and configuration',
+    'Implement proper error handling with structured logging',
+    'Enforce Content Security Policy headers',
+  ];
+  if (needsServer) {
+    base.unshift('Enforce server-side input validation on all endpoints');
+  }
+  if (needsServer && needsDatabase) {
+    base.splice(1, 0, 'Use parameterised queries to prevent SQL injection');
+  }
+  if (needsAuth) {
+    base.push('Implement rate limiting on login/auth endpoints');
+    base.push('Use cryptographically strong tokens with expiry for session management');
+  }
+  return base;
+}
 
-const OUTPUT_FORMAT_TEMPLATE = `Return only the requested {outputType}. Include brief inline comments for non-obvious decisions.`;
+function getOutputFormat(targetPlatform?: string, deploymentModel?: string): string {
+  const OUTPUT_FORMAT_TEMPLATE = 'Return only the {outputType}. Include brief inline comments for non-obvious decisions. Do NOT explain your code, do NOT provide installation instructions, and do NOT wrap code in anything other than markdown code blocks.';
+
+  if (targetPlatform === 'cli') {
+    return interpolate(OUTPUT_FORMAT_TEMPLATE, { outputType: 'CLI command/module and its exported handlers' });
+  }
+  if (deploymentModel === 'self-hosted') {
+    return interpolate(OUTPUT_FORMAT_TEMPLATE, { outputType: 'the service module, Dockerfile changes, and configuration' });
+  }
+  if (deploymentModel === 'local') {
+    return interpolate(OUTPUT_FORMAT_TEMPLATE, { outputType: 'the module and its bundled executable entry point' });
+  }
+  return interpolate(OUTPUT_FORMAT_TEMPLATE, { outputType: 'files/modules needed for this task' });
+}
 
 /**
  * Type-safe string interpolation helper.
@@ -103,7 +148,7 @@ export function assembleTaskHeader(
   stack?: ProjectStack,
   securityRequirements?: string[]
 ): string {
-  const securityLines = securityRequirements ?? SECURITY_REQUIREMENTS;
+  const securityLines = securityRequirements ?? getSecurityRequirements(true, true);
   
   return [
     `# 📋 IMPLEMENTATION TASK: ${title.toUpperCase()}`,
@@ -203,11 +248,25 @@ export function assembleSecurityContext(security?: SecurityContext | null): stri
 /**
  * Assembler for core Role play and Context briefs.
  */
-export function assembleRoleAndContext(brief: ProjectBrief, stack?: ProjectStack): { role: string; contextSummary: string } {
-  const role = interpolate(ROLE_TEMPLATE, {
-    stack: stack?.backend ?? 'TypeScript',
-    projectName: brief.projectName,
-  });
+export function assembleRoleAndContext(
+  brief: ProjectBrief,
+  stack?: ProjectStack,
+  needsServer?: boolean,
+  targetPlatform?: 'web' | 'cli'
+): { role: string; contextSummary: string } {
+  const stackRole =
+    targetPlatform === 'cli'
+      ? (stack?.backend ?? 'Node.js')
+      : needsServer === false
+        ? (stack?.frontend ?? 'React')
+        : (stack?.backend ?? 'TypeScript');
+
+  const role = targetPlatform === 'cli'
+    ? `You are a senior CLI developer building ${brief.projectName}.`
+    : interpolate(ROLE_TEMPLATE, {
+        stack: stackRole,
+        projectName: brief.projectName,
+      });
 
   const techStackString = [
     stack?.frontend,
@@ -230,24 +289,68 @@ export function assembleRoleAndContext(brief: ProjectBrief, stack?: ProjectStack
  * High-quality thin composer of developer implementation tasks prompts.
  */
 export function buildPrompt(context: PromptContext): string {
-  const { role, contextSummary } = assembleRoleAndContext(context.brief, context.stack);
+  const { role, contextSummary } = assembleRoleAndContext(
+    context.brief,
+    context.stack,
+    context.needsServer,
+    context.targetPlatform
+  );
 
   const archSpec = assembleArchitectureContext(context.architecture);
   const dataModelSpec = assembleDataModelContext(context.dataModel);
   const securitySpec = assembleSecurityContext(context.security);
 
+  const securityLines = context.securityRequirements
+    ?? getSecurityRequirements(
+      context.needsDatabase ?? true,
+      context.needsServer ?? true,
+      context.targetPlatform ?? 'web',
+      context.needsAuth ?? true
+    );
+
+  // Filter stack based on deployment model (Step 6)
+  let filteredStack = context.stack ? { ...context.stack } : undefined;
+  if (filteredStack && context.deploymentModel === 'local') {
+    delete (filteredStack as any).hosting;
+    delete (filteredStack as any).cdn;
+  }
+  if (filteredStack && context.deploymentModel === 'self-hosted') {
+    (filteredStack as any).infrastructure = 'Docker Compose / Nginx (Self-Hosted)';
+  }
+
   const taskHeader = assembleTaskHeader(
     context.task.title,
     context.task.objective,
     context.task.acceptanceCriteria,
-    context.stack,
-    context.securityRequirements
+    filteredStack,
+    securityLines
   );
+
+  // Deployment-specific constraints + auth constraints at the TOP (Step 3)
+  const instructions: string[] = [];
+
+  if (context.deploymentModel === 'self-hosted') {
+    instructions.push(
+      'IMPORTANT: This project is self-hosted. Ensure all configuration is externalized via environment variables or config files. Include health check endpoints. Document required infrastructure (Docker, reverse proxy, SSL).'
+    );
+  } else if (context.deploymentModel === 'local') {
+    instructions.push(
+      'IMPORTANT: This application runs locally. Do not depend on external network services at runtime. Ensure clean shutdown on SIGTERM/SIGINT. Bind to localhost only.'
+    );
+  }
+
+  if (context.needsAuth === false) {
+    instructions.push(
+      'IMPORTANT: This project does NOT require user accounts or authentication. Do NOT generate any login forms, session management, NextAuth configs, custom auth routes, or JWT utilities.'
+    );
+  }
 
   const referenceContext = [
     '---',
     '## 📖 SYSTEM REFERENCE CONTEXT (For developer tool background awareness)',
     '',
+    ...instructions,
+    ...(instructions.length > 0 ? [''] : []),
     `**Role Context**: ${role}`,
     `**System Overview**: ${contextSummary}`,
     '',
@@ -256,9 +359,7 @@ export function buildPrompt(context: PromptContext): string {
     securitySpec,
   ].filter((p) => p !== '').join('\n');
 
-  const outputFormat = interpolate(OUTPUT_FORMAT_TEMPLATE, {
-    outputType: 'files/modules needed for this task',
-  });
+  const outputFormat = getOutputFormat(context.targetPlatform, context.deploymentModel);
 
   return [
     taskHeader,
@@ -283,7 +384,13 @@ export function generateTaskObjective(requirement: Requirement): string {
 /**
  * Action-based, highly testable acceptance criteria generator.
  */
-export function generateAcceptanceCriteria(requirement: Requirement): string[] {
+export function generateAcceptanceCriteria(
+  requirement: Requirement,
+  needsDatabase: boolean = true,
+  needsServer: boolean = true,
+  targetPlatform: string = 'web',
+  deploymentModel: string = 'cloud'
+): string[] {
   const criteria = [
     `Verify that the ${requirement.actor} can successfully execute the action: "${requirement.action}"`,
   ];
@@ -294,15 +401,55 @@ export function generateAcceptanceCriteria(requirement: Requirement): string[] {
 
   const actionLower = requirement.action.toLowerCase();
   
-  if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('save') || actionLower.includes('update') || actionLower.includes('set')) {
-    criteria.push(`Verify that new or updated records are correctly committed to the database and match the schema rules`);
-    criteria.push(`Ensure that form/API validation prevents empty, invalid, or duplicate submissions`);
-  } else if (actionLower.includes('view') || actionLower.includes('list') || actionLower.includes('search') || actionLower.includes('read') || actionLower.includes('get')) {
-    criteria.push(`Verify that data is retrieved and rendered correctly in real-time or cached formats`);
-    criteria.push(`Confirm that empty or missing states are handled gracefully in the user interface`);
-  } else if (actionLower.includes('transfer') || actionLower.includes('process') || actionLower.includes('calculate') || actionLower.includes('simulate') || actionLower.includes('adjust')) {
-    criteria.push(`Verify that calculations, updates, or transitions update all associated entities and states correctly`);
-    criteria.push(`Ensure transactional integrity is maintained, reverting changes if any sub-operation fails`);
+  if (targetPlatform === 'cli') {
+    criteria.push(
+      `Verify the command exits with code 0 on success and a non-zero code on failure`
+    );
+    criteria.push(
+      `Verify that --help output is correct and describes all flags and arguments`
+    );
+    if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('save') || actionLower.includes('update') || actionLower.includes('set')) {
+      criteria.push(
+        `Verify that invalid or missing arguments produce a clear error message on stderr`
+      );
+      criteria.push(
+        `Verify that the command is idempotent or handles existing state gracefully`
+      );
+    } else if (actionLower.includes('view') || actionLower.includes('list') || actionLower.includes('search') || actionLower.includes('read') || actionLower.includes('get')) {
+      criteria.push(
+        `Verify that output is correctly formatted for both TTY and piped consumption`
+      );
+      criteria.push(
+        `Verify that empty results produce an appropriate message rather than silence`
+      );
+    }
+  } else {
+    if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('save') || actionLower.includes('update') || actionLower.includes('set')) {
+      criteria.push(
+        needsDatabase
+          ? `Verify that new or updated records are correctly committed to the database and match the schema rules`
+          : `Verify that new or updated records are correctly persisted and match the expected data structure`
+      );
+      criteria.push(`Ensure that ${needsServer === false ? 'client-side' : 'form/API'} validation prevents empty, invalid, or duplicate submissions`);
+    } else if (actionLower.includes('view') || actionLower.includes('list') || actionLower.includes('search') || actionLower.includes('read') || actionLower.includes('get')) {
+      criteria.push(`Verify that data is retrieved and rendered correctly in real-time or cached formats`);
+      criteria.push(`Confirm that empty or missing states are handled gracefully in the user interface`);
+    } else if (actionLower.includes('transfer') || actionLower.includes('process') || actionLower.includes('calculate') || actionLower.includes('simulate') || actionLower.includes('adjust')) {
+      criteria.push(`Verify that calculations, updates, or transitions update all associated entities and states correctly`);
+      criteria.push(`Ensure transactional integrity is maintained, reverting changes if any sub-operation fails`);
+    }
+
+    if (deploymentModel === 'self-hosted') {
+      criteria.push(
+        'Verify container configuration incorporates Docker network isolation and environment-variable-driven variables',
+        'Ensure a working health check endpoint is implemented and documented setup procedure is provided'
+      );
+    } else if (deploymentModel === 'local') {
+      criteria.push(
+        'Verify the service binds solely to loopback (127.0.0.1) and handles clean shutdown on SIGTERM/SIGINT',
+        'Ensure the application is fully offline-capable with zero external runtime network dependencies'
+      );
+    }
   }
 
   return criteria;

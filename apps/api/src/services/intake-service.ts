@@ -14,6 +14,9 @@ export async function saveProjectBrief(
     coreValueProposition: string;
     outOfScope: string[];
     successMetrics: string[];
+    needsDatabase: boolean | null;
+    needsServer: boolean | null;
+    needsAuth: boolean | null;
   },
 ) {
   const existing = await db
@@ -21,7 +24,7 @@ export async function saveProjectBrief(
     .from(projectBriefs)
     .where(eq(projectBriefs.projectId, projectId));
 
-  if (existing.length > 0) {
+  if (existing.length > 0 && existing[0]) {
     const [updated] = await db
       .update(projectBriefs)
       .set({ ...brief, version: existing[0].version + 1, updatedAt: new Date() })

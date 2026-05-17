@@ -11,7 +11,7 @@ export function registerAuthGuard(fastify: FastifyInstance) {
 
     if (routeOptions.url && !publicPaths.includes(routeOptions.url)) {
       const existingConfig = routeOptions.config ?? {};
-      routeOptions.config = { ...existingConfig, requiresAuth: true };
+      routeOptions.config = { ...existingConfig, requiresAuth: true } as any;
     }
   });
 }

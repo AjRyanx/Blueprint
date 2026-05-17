@@ -1,4 +1,5 @@
 import { GeminiClient, type StreamCallback } from '../llm/gemini-client.js';
+import { GroqClient } from '../llm/groq-client.js';
 import { estimateTokens, truncateToBudget } from '../utils/token-counter.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -6,11 +7,39 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+export function extractCleanResponse(raw: string): string {
+  // Try <output> tag first
+  const tagMatch = raw.match(/<output>([\s\S]*?)<\/output>/);
+  const targetText = tagMatch?.[1] ? tagMatch[1] : raw;
+
+  // Filter out all lines that look like CoT/reasoning
+  const lines = targetText.split('\n').filter(line => {
+    const l = line.trim();
+    return l.length > 0
+      && !l.startsWith('*')
+      && !l.startsWith('-')
+      && !l.match(/^\d+\./)
+      && !l.includes('needsDatabase')
+      && !l.includes('needsServer')
+      && !l.includes('needsAuth')
+      && !l.toLowerCase().includes('instruction')
+      && !l.toLowerCase().includes('draft')
+      && !l.toLowerCase().includes('rule ')
+      && !l.toLowerCase().includes('output>')
+      && !l.includes('`');
+  });
+
+  if (lines.length > 0) {
+    return lines.join('\n').trim();
+  }
+  return targetText.trim();
+}
+
 export class IntakeAgent {
-  private client: GeminiClient;
+  private client: GeminiClient | GroqClient;
   private systemPrompt: string;
 
-  constructor(client: GeminiClient) {
+  constructor(client: GeminiClient | GroqClient) {
     this.client = client;
     try {
       this.systemPrompt = readFileSync(
@@ -35,8 +64,8 @@ Rules:
     onToken?: StreamCallback,
   ) {
     const contextSummary = conversationHistory
-      .slice(-6)
-      .map((m) => `${m.role}: ${m.content.slice(0, 500)}`)
+      .slice(-100)
+      .map((m) => `${m.role}: ${m.content}`)
       .join('\n');
 
     const userContent = truncateToBudget(
@@ -44,65 +73,32 @@ Rules:
     );
 
     if (onToken) {
-      let buffer = '';
-      let isOutputting = false;
-      let hasFinished = false;
-      let processedIndex = 0;
-
+      // Execute the generation stream fully to capture the complete text reliably,
+      // avoiding any cut-offs or truncation bugs from chunk splits.
       const fullText = await this.client.generateStream(
         this.systemPrompt,
         userContent,
-        (token) => {
-          if (hasFinished) return;
-          buffer += token;
-
-          while (processedIndex < buffer.length) {
-            if (!isOutputting) {
-              const startIndex = buffer.indexOf('<output>', processedIndex);
-              if (startIndex !== -1) {
-                isOutputting = true;
-                processedIndex = startIndex + 8;
-              } else {
-                // Keep moving processedIndex but stop before potential partial tag
-                processedIndex = Math.max(0, buffer.length - 8);
-                break;
-              }
-            } else {
-              const endIndex = buffer.indexOf('</output>', processedIndex);
-              if (endIndex !== -1) {
-                const content = buffer.substring(processedIndex, endIndex);
-                if (content) onToken(content);
-                isOutputting = false;
-                hasFinished = true;
-                processedIndex = endIndex + 9;
-                break;
-              } else {
-                // Stream what we have so far, but stop before potential partial closing tag
-                const safeLength = Math.max(0, buffer.length - 9);
-                if (safeLength > processedIndex) {
-                  const chunk = buffer.substring(processedIndex, safeLength);
-                  onToken(chunk);
-                  processedIndex = safeLength;
-                }
-                break;
-              }
-            }
-          }
-        },
+        () => {}, // discard intermediate raw tokens to prevent reasoning leakage
       );
 
-      if (!isOutputting && buffer.length > 0 && !buffer.includes('<output>')) {
-        // If the model completely ignored the tag instruction, just send the whole thing
-        // but this is unlikely with a strong prompt
-        onToken(buffer);
+      const cleanResponse = extractCleanResponse(fullText);
+
+      // Stream the cleaned response to the frontend client socket with a natural typing pacing
+      const words = cleanResponse.split(' ');
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (word !== undefined) {
+          onToken(word + (i === words.length - 1 ? '' : ' '));
+          // Micro delay for a premium interactive typing feel
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
       }
 
       return fullText;
     }
 
     const rawResponse = await this.client.generate(this.systemPrompt, userContent);
-    const match = rawResponse.match(/<output>([\s\S]*?)<\/output>/);
-    return (match && match[1]) ? match[1].trim() : rawResponse;
+    return extractCleanResponse(rawResponse);
   }
 
   async synthesizeBrief(conversationHistory: { role: string; content: string }[]) {
@@ -121,13 +117,16 @@ Required JSON format (EXACTLY LIKE THIS):
   "targetUsers": "The specific demographic or group this is built for.",
   "coreValueProposition": "The primary benefit or value provided to users.",
   "outOfScope": ["List of features NOT in the MVP"],
-  "successMetrics": ["Measurable indicators of success"]
+  "successMetrics": ["Measurable indicators of success"],
+  "needsDatabase": null,
+  "needsServer": null,
+  "needsAuth": null
 }
 
 STRICT CONSTRAINTS:
 1. Respond with ONLY the raw JSON object. No markdown.
 2. FORBIDDEN WORD: Do not EVER use the literal word "string" as a value in any field.
-3. If a field was not explicitly discussed in the conversation, use your expertise to infer a logical, professional placeholder based on the project type (e.g., if it's an invoice tracker, infer that target users are likely freelancers or small business owners).
+3. If a field was not explicitly discussed in the conversation, use your expertise to infer a logical, professional placeholder based on the project type (e.g., if it's an invoice tracker, infer that target users are likely freelancers or small business owners). For needsDatabase, needsServer, and needsAuth, set them to true or false ONLY when strongly implied/discussed, otherwise default to null.
 4. Ensure the output is valid, parseable JSON.
 
 Conversation:

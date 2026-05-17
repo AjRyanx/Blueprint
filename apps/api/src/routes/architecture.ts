@@ -51,15 +51,25 @@ export async function architectureRoutes(fastify: FastifyInstance) {
     if (existing.length > 0) {
       [result] = await db
         .update(architectureDesigns)
-        .set({ ...parsed.data, updatedAt: new Date() })
+        .set({ ...parsed.data, targetPlatform: project.targetPlatform, updatedAt: new Date() })
         .where(eq(architectureDesigns.projectId, id))
         .returning();
     } else {
       [result] = await db
         .insert(architectureDesigns)
-        .values({ projectId: id, ...parsed.data })
+        .values({ projectId: id, ...parsed.data, targetPlatform: project.targetPlatform })
         .returning();
     }
+
+    // Write definitive needsDatabase, needsServer, needsAuth and deploymentModel back to projects table
+    const needsDatabase = parsed.data.needsDatabase ?? true;
+    const needsServer = parsed.data.needsServer ?? true;
+    const needsAuth = parsed.data.needsAuth ?? true;
+    const deploymentModel = parsed.data.deploymentModel ?? 'cloud';
+    await db
+      .update(projects)
+      .set({ needsDatabase, needsServer, needsAuth, deploymentModel, updatedAt: new Date() })
+      .where(eq(projects.id, id));
 
     if (project.currentPhase < 3) {
       await advancePhase(id, 3);
@@ -97,7 +107,20 @@ export async function architectureRoutes(fastify: FastifyInstance) {
     });
     const orchestrator = new Orchestrator(geminiClient, groqClient);
 
-    let designJson = await orchestrator.generateArchitecture(JSON.stringify(brief), stories);
+    const needsDatabaseHint = brief.needsDatabase ?? null;
+    const needsServerHint = (brief as any).needsServer ?? null;
+    const needsAuthHint = (brief as any).needsAuth ?? null;
+    const targetPlatform = project.targetPlatform ?? 'web';
+    const deploymentModel = project.deploymentModel ?? 'cloud';
+    let designJson = await orchestrator.generateArchitecture(
+      JSON.stringify(brief),
+      stories,
+      needsDatabaseHint,
+      needsServerHint,
+      targetPlatform,
+      needsAuthHint,
+      deploymentModel
+    );
     
     // Clean up potential markdown or surrounding text
     designJson = designJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
@@ -125,16 +148,56 @@ export async function architectureRoutes(fastify: FastifyInstance) {
     if (existing.length > 0) {
       [result] = await db
         .update(architectureDesigns)
-        .set({ ...designData, updatedAt: new Date() })
+        .set({ ...designData, targetPlatform, updatedAt: new Date() })
         .where(eq(architectureDesigns.projectId, id))
         .returning();
     } else {
       [result] = await db
         .insert(architectureDesigns)
-        .values({ projectId: id, ...designData })
+        .values({ projectId: id, ...designData, targetPlatform })
         .returning();
     }
 
+    // Write definitive needsDatabase, needsServer, needsAuth and deploymentModel back to projects table
+    const needsDatabase = designData.needsDatabase === false ? false : true;
+    const needsServer = targetPlatform === 'cli' ? false : (designData.needsServer === false ? false : true);
+    const needsAuth = targetPlatform === 'cli' ? false : (designData.needsAuth === false ? false : true);
+    const resolvedDeploymentModel = designData.deploymentModel ?? project.deploymentModel ?? 'cloud';
+    await db
+      .update(projects)
+      .set({ needsDatabase, needsServer, needsAuth, deploymentModel: resolvedDeploymentModel, updatedAt: new Date() })
+      .where(eq(projects.id, id));
+
     return { success: true, data: result };
+  });
+
+  fastify.post('/api/v1/projects/:id/architecture/enable-server', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { userId } = request.user;
+
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    if (!project || project.userId !== userId) {
+      return reply.status(404).send({ success: false, error: 'Project not found' });
+    }
+
+    const [updatedProject] = await db
+      .update(projects)
+      .set({
+        needsServer: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(projects.id, id))
+      .returning();
+
+    await db
+      .update(architectureDesigns)
+      .set({
+        needsServer: true,
+        serverNotes: 'Server manually re-enabled by user.',
+        updatedAt: new Date(),
+      })
+      .where(eq(architectureDesigns.projectId, id));
+
+    return { success: true, data: updatedProject };
   });
 }

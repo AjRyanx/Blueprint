@@ -53,9 +53,15 @@ export async function securityRoutes(fastify: FastifyInstance) {
       .from(requirementsTable)
       .where(eq(requirementsTable.projectId, id));
 
+    const { needsDatabase = true, needsServer = true, targetPlatform = 'web', needsAuth = true, deploymentModel = 'cloud' } = project;
     const result = await orchestrator.generateSecurityChecklist(
       JSON.stringify(brief ?? {}),
       JSON.stringify(reqs),
+      needsDatabase,
+      needsServer,
+      targetPlatform,
+      needsAuth,
+      deploymentModel
     );
 
     const existing = await db

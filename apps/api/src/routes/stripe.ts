@@ -56,7 +56,7 @@ export async function stripeRoutes(fastify: FastifyInstance) {
     const portal = await stripe.billingPortal.sessions.create({
       customer_email: user.email,
       return_url: `${request.headers.origin}/settings`,
-    });
+    } as any);
 
     return { success: true, data: { url: portal.url } };
   });

@@ -5,6 +5,13 @@ Output ONLY a valid JSON object matching the following structure. Do not use mar
 Structure:
 {
   "overview": "High-level summary of the system architecture.",
+  "needsDatabase": true,
+  "persistenceNotes": "Optional explanation if needsDatabase is false",
+  "needsServer": true,
+  "serverNotes": "Optional explanation when needsServer is false",
+  "needsAuth": true,
+  "targetPlatform": "web",
+  "deploymentModel": "cloud",
   "techStack": [
     {
       "category": "Frontend",
@@ -12,6 +19,20 @@ Structure:
         { "name": "Next.js", "version": "15.0", "notes": "Core framework" }
       ]
     }
+    // Note: When needsServer is false, do not include Backend or Database. Example:
+    // "techStack": [
+    //   { "category": "Frontend", "items": [{ "name": "React", "version": "19", "notes": "SPA only, no server" }] },
+    //   { "category": "Hosting", "items": [{ "name": "Vercel", "notes": "Static deployment" }] }
+    // ]
+    // When targetPlatform is "cli", techStack should look like:
+    // "techStack": [
+    //   { "category": "CLI Framework", "items": [{ "name": "Commander.js", "version": "12.0", "notes": "Subcommand routing" }] },
+    //   { "category": "Runtime", "items": [{ "name": "Node.js", "version": "22", "notes": "LTS" }] },
+    //   { "category": "Build Tooling", "items": [{ "name": "tsup", "notes": "Bundle to CJS + ESM" }] },
+    //   { "category": "Distribution", "items": [{ "name": "npm", "notes": "Published as global package" }] }
+    // ]
+    // And set the Mermaid diagram to show a command/handler/output flow:
+    // "diagrams": "graph TD\n  User -->|runs command| CLI\n  CLI -->|parses args| Handler\n  Handler -->|writes| Stdout\n  Handler -->|errors| Stderr"
   ],
   "patterns": [
     { "name": "Monolith", "description": "Single deployment unit", "rationale": "Simplicity for MVP" }
@@ -19,7 +40,7 @@ Structure:
   "decisions": [
     { "title": "PostgreSQL", "context": "Need relational data", "decision": "Use Supabase", "consequences": "Fast setup, limited local control" }
   ],
-  "constraints": ["Must run on Vercel", "Limited budget"],
+  "constraints": ["Must run on cloud/local/self-hosted provider", "Limited budget"],
   "qualityAttributes": [
     { "attribute": "Performance", "target": "<200ms p95", "notes": "Critical for UX" }
   ],
@@ -32,3 +53,22 @@ Guidelines:
 3. Ensure the tech stack is cohesive.
 4. The 'diagrams' field MUST be a valid Mermaid.js string.
 5. Base your decisions on the provided project brief and user stories.
+6. Set needsDatabase to false when the system has no server-side data storage — e.g. static sites, browser-only tools, apps that only consume external APIs without storing user state. Set to true for any project with user accounts, stored records, or custom data. When needsDatabase is false, do not recommend a database in techStack. Recommend stateless approaches (e.g. localStorage, third-party services, edge config).
+7. Set needsServer to false when the system has no custom backend — e.g. static sites, browser extensions, CLI tools, or apps that only consume third-party APIs. When needsServer is false, do not include Backend or Database categories in techStack. Set the Mermaid diagram to show only: User --> Frontend. When needsServer is true (default), include backend and infrastructure as normal.
+8. Set needsAuth to false when the system has no user accounts or authentication requirements (e.g. public read-only dashboard, local desktop tool with no authentication, internal utility behind network security, or CLI tool with no login). When needsAuth is false, do NOT recommend any auth libraries or providers (such as NextAuth, Auth0, Clerk, Supabase Auth, Lucia, etc.) in the techStack or patterns. Default needsAuth to true if user accounts, access control, or roles are discussed or implied.
+9. Read the targetPlatform field from the user context.
+   When targetPlatform is "cli":
+     - Do NOT include Frontend, Backend, Database, Auth, or Hosting categories.
+     - Use categories: CLI Framework, Runtime, Build Tooling, Distribution.
+     - Recommend: Commander.js, oclif, or yargs for CLI Framework.
+     - Recommend: Node.js, Deno, Bun, Go, or Python for Runtime.
+     - Recommend: tsup or esbuild for Build Tooling.
+     - Set needsServer to false.
+     - Set needsAuth to false.
+     - Set the Mermaid diagram to show a command/handler/output flow (not a web request/response flow).
+   When targetPlatform is "web":
+     - Proceed as normal with Frontend, Backend, Database, Auth, Hosting.
+10. Read the deploymentModel field from the user context.
+    - When deploymentModel is 'self-hosted': recommend Docker Compose, reverse proxy (nginx/Caddy), SSL cert management (Let's Encrypt), and backup strategy in techStack, patterns, and decisions.
+    - When deploymentModel is 'local': recommend SQLite, bundled server, no cloud dependencies, and installer/packaging tooling in techStack, patterns, and decisions.
+    - When deploymentModel is 'cloud' (default): recommend cloud-native hosting (e.g. Vercel, Railway, AWS) as normal.

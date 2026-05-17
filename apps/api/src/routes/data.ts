@@ -77,6 +77,10 @@ export async function dataRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ success: false, error: 'Project not found' });
     }
 
+    if (!project.needsDatabase) {
+      return reply.status(400).send({ success: false, error: 'Database modelling is skipped for this project.' });
+    }
+
     const brief = await getProjectBrief(id);
     if (!brief) {
       return reply.status(400).send({ success: false, error: 'Project brief not found.' });
@@ -97,7 +101,10 @@ export async function dataRoutes(fastify: FastifyInstance) {
     });
     const orchestrator = new Orchestrator(geminiClient, groqClient);
 
-    let dataJson = await orchestrator.generateDataModel(JSON.stringify(brief), stories);
+    let dataJson = await orchestrator.generateDataModel(JSON.stringify(brief), stories, { needsDatabase: true });
+    if (!dataJson) {
+      return reply.status(400).send({ success: false, error: 'Data modelling skipped or database not needed.' });
+    }
     
     // Clean up potential markdown or surrounding text
     dataJson = dataJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');

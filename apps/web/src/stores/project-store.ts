@@ -30,10 +30,13 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   setCurrentPhase: (phase) => set((state) => ({
     currentPhase: phase,
-    phases: state.phases.map((p) => ({
-      ...p,
-      status: p.phase < phase ? 'completed' : p.phase === phase ? 'active' : 'locked',
-    })),
+    phases: state.phases.map((p) => {
+      if (p.status === 'skipped') return p;
+      return {
+        ...p,
+        status: p.phase < phase ? 'completed' : p.phase === phase ? 'active' : 'locked',
+      };
+    }),
   })),
 
   setPhases: (phases) => set({ phases }),

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, index, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { users } from './users';
 
@@ -17,6 +17,11 @@ export const projects = pgTable(
       .notNull()
       .default('active'),
     currentPhase: integer('current_phase').notNull().default(1),
+    needsDatabase: boolean('needs_database').default(true).notNull(),
+    needsServer: boolean('needs_server').default(true).notNull(),
+    needsAuth: boolean('needs_auth').default(true).notNull(),
+    targetPlatform: text('target_platform').default('web').notNull(),
+    deploymentModel: text('deployment_model').default('cloud').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -42,6 +47,11 @@ export const projectBriefs = pgTable(
     coreValueProposition: text('core_value_proposition').notNull(),
     outOfScope: jsonb('out_of_scope').notNull().default([]),
     successMetrics: jsonb('success_metrics').notNull().default([]),
+    needsDatabase: boolean('needs_database'),
+    needsServer: boolean('needs_server'),
+    needsAuth: boolean('needs_auth'),
+    targetPlatform: text('target_platform').default('web').notNull(),
+    deploymentModel: text('deployment_model'),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

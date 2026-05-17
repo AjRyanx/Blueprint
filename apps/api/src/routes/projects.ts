@@ -56,11 +56,17 @@ export async function projectRoutes(fastify: FastifyInstance) {
     }
 
     const { userId } = request.user;
-    const { name, description } = parsed.data;
+    const { name, description, targetPlatform = 'web' } = parsed.data;
 
     const [project] = await db
       .insert(projects)
-      .values({ userId, name, description })
+      .values({
+        userId,
+        name,
+        description,
+        targetPlatform,
+        needsServer: targetPlatform === 'cli' ? false : true,
+      })
       .returning();
 
     return reply.status(201).send({ success: true, data: project });
