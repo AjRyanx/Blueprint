@@ -11,20 +11,38 @@ export type TechStackCategory = {
   items: TechStackItem[];
 };
 
+/**
+ * System Architecture design schema mapping.
+ * Shape:
+ * - techStack: { category: string; items: { name: string; version?: string; notes?: string }[] }[]
+ * - patterns: { name: string; description: string; rationale?: string }[]
+ * - constraints: string[]
+ */
 export type ArchitectureContext = {
   overview?: string | null;
-  techStack?: any;
-  patterns?: any;
-  constraints?: any;
+  techStack?: unknown;
+  patterns?: unknown;
+  constraints?: unknown;
 };
 
+/**
+ * Database Data Schema mapping.
+ * Shape:
+ * - entities: { name: string; description?: string; attributes: { name: string; type: string; required?: boolean; unique?: boolean; notes?: string }[] }[]
+ * - relationships: { name?: string | null; type: string; source?: string; target?: string; from?: string; to?: string; description?: string }[]
+ */
 export type DataModelContext = {
-  entities?: any;
-  relationships?: any;
+  entities?: unknown;
+  relationships?: unknown;
 };
 
+/**
+ * Security audit checklist mapping.
+ * Shape:
+ * - checklist: { id: string; category: string; title: string; description: string; required: boolean; passed?: boolean; status?: string; name?: string }[]
+ */
 export type SecurityContext = {
-  checklist?: any;
+  checklist?: unknown;
 };
 
 export type ProjectStack = {
@@ -114,9 +132,9 @@ export function assembleTaskHeader(
 export function assembleArchitectureContext(architecture?: ArchitectureContext | null): string {
   if (!architecture) return '';
 
-  const categories = architecture.techStack || [];
-  const patterns = architecture.patterns || [];
-  const constraints = architecture.constraints || [];
+  const categories = (architecture.techStack as any) || [];
+  const patterns = (architecture.patterns as any) || [];
+  const constraints = (architecture.constraints as any) || [];
 
   const archLines = [
     '### 🏛️ System Architecture Design',
@@ -141,8 +159,8 @@ export function assembleArchitectureContext(architecture?: ArchitectureContext |
 export function assembleDataModelContext(dataModel?: DataModelContext | null): string {
   if (!dataModel) return '';
 
-  const entities = dataModel.entities || [];
-  const relationships = dataModel.relationships || [];
+  const entities = (dataModel.entities as any) || [];
+  const relationships = (dataModel.relationships as any) || [];
 
   const dataLines = [
     '### 💾 Database Schema & Entity Map',
@@ -153,7 +171,11 @@ export function assembleDataModelContext(dataModel?: DataModelContext | null): s
         }).join('\n')}`
       : '',
     relationships.length > 0
-      ? `*Entity Relationships*:\n${relationships.map((r: any) => `  - ${r.source} --(${r.name}: ${r.type})--> ${r.target}`).join('\n')}`
+      ? `*Entity Relationships*:\n${relationships.map((r: any) => {
+          const source = r.source || r.from || 'undefined';
+          const target = r.target || r.to || 'undefined';
+          return `  - ${source} --(${r.name || 'Relationship'}: ${r.type})--> ${target}`;
+        }).join('\n')}`
       : '',
   ].filter(Boolean);
 
@@ -166,7 +188,7 @@ export function assembleDataModelContext(dataModel?: DataModelContext | null): s
 export function assembleSecurityContext(security?: SecurityContext | null): string {
   if (!security) return '';
 
-  const checklist = security.checklist || [];
+  const checklist = (security.checklist as any) || [];
   const passedChecks = checklist.filter((c: any) => c.status === 'passed' || c.passed === true);
 
   if (passedChecks.length === 0) return '';
@@ -254,7 +276,8 @@ export function generateTaskTitle(requirement: Requirement): string {
 }
 
 export function generateTaskObjective(requirement: Requirement): string {
-  return `Implement the user story: "${requirement.userStory}". This is a ${requirement.priority}-priority requirement.`;
+  const story = requirement.userStory || `As a ${requirement.actor || 'User'}, I want to ${requirement.action || 'perform an action'}, so that ${requirement.benefit || 'achieve a benefit'}`;
+  return `Implement the user story: "${story}". This is a ${requirement.priority || 'must'}-priority requirement.`;
 }
 
 /**
@@ -271,14 +294,14 @@ export function generateAcceptanceCriteria(requirement: Requirement): string[] {
 
   const actionLower = requirement.action.toLowerCase();
   
-  if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('save') || actionLower.includes('tactics')) {
+  if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('save') || actionLower.includes('update') || actionLower.includes('set')) {
     criteria.push(`Verify that new or updated records are correctly committed to the database and match the schema rules`);
     criteria.push(`Ensure that form/API validation prevents empty, invalid, or duplicate submissions`);
-  } else if (actionLower.includes('view') || actionLower.includes('standings') || actionLower.includes('roster') || actionLower.includes('injuries')) {
+  } else if (actionLower.includes('view') || actionLower.includes('list') || actionLower.includes('search') || actionLower.includes('read') || actionLower.includes('get')) {
     criteria.push(`Verify that data is retrieved and rendered correctly in real-time or cached formats`);
     criteria.push(`Confirm that empty or missing states are handled gracefully in the user interface`);
-  } else if (actionLower.includes('transfer') || actionLower.includes('simulate') || actionLower.includes('adjust')) {
-    criteria.push(`Verify that calculations or simulations update all associated entities (e.g., budgets, rosters, match results)`);
+  } else if (actionLower.includes('transfer') || actionLower.includes('process') || actionLower.includes('calculate') || actionLower.includes('simulate') || actionLower.includes('adjust')) {
+    criteria.push(`Verify that calculations, updates, or transitions update all associated entities and states correctly`);
     criteria.push(`Ensure transactional integrity is maintained, reverting changes if any sub-operation fails`);
   }
 

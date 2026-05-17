@@ -17,8 +17,9 @@ Output ONLY valid JSON that matches the following structure:
   ],
   "relationships": [
     {
-      "from": "EntityName",
-      "to": "EntityName",
+      "name": "string",
+      "source": "EntityName",
+      "target": "EntityName",
       "type": "string (e.g. one-to-many, one-to-one, many-to-many)",
       "description": "string"
     }
