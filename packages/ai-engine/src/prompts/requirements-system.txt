@@ -4,10 +4,10 @@ Do not explain anything. Do not use markdown.
 Format:
 [
   {
-    "userStory": "As a User, I want to view dashboard, so that I can see unpaid invoices",
-    "actor": "User",
-    "action": "view dashboard",
-    "benefit": "see unpaid invoices",
+    "userStory": "As a Developer, I want to post standup updates from the terminal, so that I can reduce context-switching",
+    "actor": "Developer",
+    "action": "post standup updates from the terminal",
+    "benefit": "I can reduce context-switching",
     "priority": "must"
   }
 ]
@@ -17,3 +17,10 @@ Rules:
 2. MANDATORY: Convert all "Out of Scope" items from the brief into "wont" priority stories.
 3. Return between 10 and 15 stories total.
 4. Output ONLY the raw JSON.
+5. If targetPlatform is 'cli', do NOT generate stories about web UI, dashboards, browser access, or web platform usage.
+6. If needsAuth is false, do NOT generate stories about login, signup, authentication, sessions, or account management.
+7. If needsServer is false, do NOT generate stories about API endpoints, server configuration, or backend services.
+8. If deploymentModel is 'local', do NOT generate stories about cloud deployment, hosting, or remote access.
+9. The "benefit" field must always complete the phrase "so that I can...". Never write a benefit that is not a complete clause.
+   Good: "so that I can reduce context-switching"
+   Bad:  "so that reduce context-switching"

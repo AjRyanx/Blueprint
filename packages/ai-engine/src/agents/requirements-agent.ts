@@ -35,14 +35,40 @@ Rules:
     }
   }
 
-  async generateUserStories(brief: string, onToken?: StreamCallback) {
+  async generateUserStories(
+    brief: string,
+    contextOrOnToken?: {
+      targetPlatform?: string;
+      deploymentModel?: string;
+      needsServer?: boolean | null;
+      needsAuth?: boolean | null;
+    } | StreamCallback,
+    onToken?: StreamCallback
+  ) {
+    let context: any = undefined;
+    let actualOnToken = onToken;
+
+    if (typeof contextOrOnToken === 'function') {
+      actualOnToken = contextOrOnToken;
+    } else {
+      context = contextOrOnToken;
+    }
+
+    const contextBlock = context ? `
+Project Flags:
+- targetPlatform: ${context.targetPlatform ?? 'web'}
+- deploymentModel: ${context.deploymentModel ?? 'cloud'}
+- needsServer: ${context.needsServer ?? null}
+- needsAuth: ${context.needsAuth ?? null}
+` : '';
+
     const content = truncateToBudget(
-      `Project Brief:\n${brief}\n\nGenerate user stories as a JSON array.`,
+      `${contextBlock}\nProject Brief:\n${brief}\n\nGenerate user stories as a JSON array.`,
       64_000,
     );
 
-    if (onToken) {
-      return this.client.generateStream(this.systemPrompt, content, onToken);
+    if (actualOnToken) {
+      return this.client.generateStream(this.systemPrompt, content, actualOnToken);
     }
     return this.client.generate(this.systemPrompt, content);
   }

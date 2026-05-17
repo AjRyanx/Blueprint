@@ -34,9 +34,15 @@ export class Orchestrator {
 
   async generateRequirements(
     brief: string,
+    contextOrOnToken?: {
+      targetPlatform?: string;
+      deploymentModel?: string;
+      needsServer?: boolean | null;
+      needsAuth?: boolean | null;
+    } | ((token: string) => void),
     onToken?: (token: string) => void,
   ) {
-    return this.requirementsAgent.generateUserStories(brief, onToken);
+    return this.requirementsAgent.generateUserStories(brief, contextOrOnToken, onToken);
   }
 
   async generateSecurityChecklist(

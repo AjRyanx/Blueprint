@@ -52,7 +52,12 @@ export async function requirementsRoutes(fastify: FastifyInstance) {
     }
 
     const briefText = JSON.stringify(brief);
-    let storiesJson = await orchestrator.generateRequirements(briefText);
+    let storiesJson = await orchestrator.generateRequirements(briefText, {
+      targetPlatform: project.targetPlatform,
+      deploymentModel: project.deploymentModel,
+      needsServer: project.needsServer,
+      needsAuth: project.needsAuth,
+    });
     
     // Clean up potential markdown, surrounding conversational text, or trailing characters
     storiesJson = storiesJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
