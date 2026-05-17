@@ -5,7 +5,7 @@ import { securityRoutes } from '../security.js';
 import { architectureRoutes } from '../architecture.js';
 import { tasksRoutes } from '../tasks.js';
 import { db } from '../../db/index.js';
-import { Orchestrator, GeminiClient, generateAcceptanceCriteria, buildPrompt, IntakeAgent } from '@blueprint/ai-engine';
+import { Orchestrator, GeminiClient, GroqClient, generateAcceptanceCriteria, buildPrompt, IntakeAgent } from '@blueprint/ai-engine';
 
 describe('platform.test.ts — CLI & Web platform isolation boundaries', () => {
   let app: any;
@@ -16,6 +16,7 @@ describe('platform.test.ts — CLI & Web platform isolation boundaries', () => {
   const originalGenerateSecurityChecklist = Orchestrator.prototype.generateSecurityChecklist;
   const originalGenerateArchitecture = Orchestrator.prototype.generateArchitecture;
   const originalGeminiGenerate = GeminiClient.prototype.generate;
+  const originalGroqGenerate = GroqClient.prototype.generate;
 
   beforeEach(async () => {
     app = Fastify();
@@ -36,6 +37,7 @@ describe('platform.test.ts — CLI & Web platform isolation boundaries', () => {
     Orchestrator.prototype.generateSecurityChecklist = originalGenerateSecurityChecklist;
     Orchestrator.prototype.generateArchitecture = originalGenerateArchitecture;
     GeminiClient.prototype.generate = originalGeminiGenerate;
+    GroqClient.prototype.generate = originalGroqGenerate;
   });
 
   test('Security Checklist: Returns CLI specific checks and excludes browser policies for cli platform projects', async () => {
@@ -213,6 +215,7 @@ describe('platform.test.ts — CLI & Web platform isolation boundaries', () => {
 
   test('Security Checklist: Returns self-hosted specific checks for self-hosted deploymentModel', async () => {
     GeminiClient.prototype.generate = async () => JSON.stringify({ threats: [], additionalChecklistItems: [] });
+    GroqClient.prototype.generate = async () => JSON.stringify({ threats: [], additionalChecklistItems: [] });
 
     db.select = (() => ({
       from: (table: any) => ({
@@ -263,6 +266,7 @@ describe('platform.test.ts — CLI & Web platform isolation boundaries', () => {
 
   test('Security Checklist: Returns local specific checks for local deploymentModel', async () => {
     GeminiClient.prototype.generate = async () => JSON.stringify({ threats: [], additionalChecklistItems: [] });
+    GroqClient.prototype.generate = async () => JSON.stringify({ threats: [], additionalChecklistItems: [] });
 
     db.select = (() => ({
       from: (table: any) => ({
@@ -313,6 +317,7 @@ describe('platform.test.ts — CLI & Web platform isolation boundaries', () => {
 
   test('Security Checklist: Falls back to cloud specific checks for legacy (null) deploymentModel', async () => {
     GeminiClient.prototype.generate = async () => JSON.stringify({ threats: [], additionalChecklistItems: [] });
+    GroqClient.prototype.generate = async () => JSON.stringify({ threats: [], additionalChecklistItems: [] });
 
     db.select = (() => ({
       from: (table: any) => ({

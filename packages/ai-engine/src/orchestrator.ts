@@ -17,7 +17,7 @@ export class Orchestrator {
     this.requirementsAgent = new RequirementsAgent(this.groqClient);
     this.architectureAgent = new ArchitectureAgent(this.groqClient);
     this.dataAgent = new DataAgent(this.groqClient);
-    this.securityAgent = new SecurityAgent(this.geminiClient);
+    this.securityAgent = new SecurityAgent(this.groqClient);
   }
 
   async processPhase1Intake(

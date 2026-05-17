@@ -38,13 +38,13 @@ Structure:
     { "name": "Monolith", "description": "Single deployment unit", "rationale": "Simplicity for MVP" }
   ],
   "decisions": [
-    { "title": "PostgreSQL", "context": "Need relational data", "decision": "Use Supabase", "consequences": "Fast setup, limited local control" }
+    { "title": "CLI Framework", "context": "Need subcommand routing and help generation", "decision": "Use Commander.js", "consequences": "Lightweight, widely adopted, good TypeScript support" }
   ],
-  "constraints": ["Must deploy to a cloud provider", "Limited budget"],
+  "constraints": ["Must run locally with no cloud dependencies at runtime", "Limited budget"],
   "qualityAttributes": [
     { "attribute": "Performance", "target": "<200ms p95", "notes": "Critical for UX" }
   ],
-  "diagrams": "graph TD\n  User --> Frontend\n  Frontend --> API"
+  "diagrams": "graph TD\n  User -->|runs command| CLI\n  CLI -->|parses args| Handler\n  Handler -->|writes| Stdout\n  Handler -->|errors| Stderr"
 }
 
 Guidelines:
@@ -78,4 +78,8 @@ Guidelines:
     - self-hosted: "Must support self-hosted deployment via Docker"
     - local:       "Must run locally with no cloud dependencies at runtime"
     Never use the placeholder text "Must run on cloud/local/self-hosted provider".
-12. The decisions array must reflect the actual project. Do not copy example values from this prompt. For CLI tools, decisions should cover things like: package manager choice, CLI framework selection, distribution strategy (npm global vs binary). For local deployment, decisions should cover: storage format (SQLite, flat file, JSON), packaging approach (pkg, nexe, native installer).
+12. The decisions array must reflect the actual project. Do not copy example values from this prompt.
+    - For CLI tools: cover CLI framework selection, distribution strategy (npm global vs binary), storage format if persistence is needed.
+    - For web projects: cover database choice, hosting provider, auth strategy.
+    - For local deployment: cover storage format (SQLite, flat file, JSON) and packaging approach (pkg, nexe, native installer).
+    - For self-hosted: cover containerisation strategy, reverse proxy choice, SSL approach.

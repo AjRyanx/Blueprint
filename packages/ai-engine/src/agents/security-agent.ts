@@ -1,4 +1,5 @@
 import { GeminiClient } from '../llm/gemini-client.js';
+import { GroqClient } from '../llm/groq-client.js';
 import { truncateToBudget } from '../utils/token-counter.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -199,10 +200,10 @@ const CLI_CHECKLIST = [
 ];
 
 export class SecurityAgent {
-  private client: GeminiClient;
+  private client: GeminiClient | GroqClient;
   private systemPrompt: string;
 
-  constructor(client: GeminiClient) {
+  constructor(client: GeminiClient | GroqClient) {
     this.client = client;
     try {
       this.systemPrompt = readFileSync(
@@ -227,8 +228,10 @@ export class SecurityAgent {
     needsAuth: boolean = true,
     deploymentModel: string | null = 'cloud'
   ) {
+    const model = (deploymentModel === null || deploymentModel === undefined) ? 'cloud' : deploymentModel;
+
     const content = truncateToBudget(
-      `Project Brief:\n${brief}\n\nRequirements:\n${requirements}\n\nTarget Platform: ${targetPlatform}\n\nReturn a JSON object with threats and additionalChecklistItems.`,
+      `Project Brief:\n${brief}\n\nRequirements:\n${requirements}\n\nProject Flags:\n- targetPlatform: ${targetPlatform}\n- deploymentModel: ${model}\n- needsAuth: ${needsAuth}\n- needsServer: ${needsServer}\n- needsDatabase: ${needsDatabase}\n\nReturn a JSON object with threats and additionalChecklistItems.`,
       64_000,
     );
 
@@ -237,7 +240,24 @@ export class SecurityAgent {
     let threats: any[] = [];
     let customItems: any[] = [];
     try {
-      const parsed = JSON.parse(response);
+      let cleanedResponse = response.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      const firstBrace = cleanedResponse.indexOf('{');
+      if (firstBrace !== -1) {
+        let depth = 0;
+        let start = firstBrace;
+        let end = -1;
+        for (let i = start; i < cleanedResponse.length; i++) {
+          if (cleanedResponse[i] === '{') depth++;
+          else if (cleanedResponse[i] === '}') {
+            depth--;
+            if (depth === 0) { end = i + 1; break; }
+          }
+        }
+        if (end !== -1) {
+          cleanedResponse = cleanedResponse.substring(start, end);
+        }
+      }
+      const parsed = JSON.parse(cleanedResponse);
       threats = parsed.threats ?? [];
       customItems = (parsed.additionalChecklistItems ?? []).map((item: any, idx: number) => ({
         ...item,
@@ -249,7 +269,6 @@ export class SecurityAgent {
     }
 
     const isCLI = targetPlatform === 'cli';
-    const model = (deploymentModel === null || deploymentModel === undefined) ? 'cloud' : deploymentModel;
     const deploymentItems = (DEPLOYMENT_CHECKLISTS as any)[model] ?? DEPLOYMENT_CHECKLISTS.cloud;
 
     return {
