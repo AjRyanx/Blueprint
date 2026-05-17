@@ -163,6 +163,8 @@ export async function chatRoutes(fastify: FastifyInstance) {
           null,
       };
 
+      request.log.info({ projectId: id, needsAuth: brief.needsAuth, needsServer: brief.needsServer, needsDatabase: brief.needsDatabase }, 'Synthesized project brief scope flags');
+
       const saved = await saveProjectBrief(id, brief);
       await advancePhase(id, 2);
 

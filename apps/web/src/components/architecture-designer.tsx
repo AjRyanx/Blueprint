@@ -248,7 +248,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
               <input
                 type="checkbox"
                 id="needsAuthToggle"
-                checked={form.needsAuth !== false}
+                checked={form.needsAuth === true}
                 onChange={(e) => update({ needsAuth: e.target.checked })}
                 className="w-5 h-5 accent-indigo-500 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer shrink-0 ml-4"
               />

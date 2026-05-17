@@ -126,7 +126,7 @@ Required JSON format (EXACTLY LIKE THIS):
 STRICT CONSTRAINTS:
 1. Respond with ONLY the raw JSON object. No markdown.
 2. FORBIDDEN WORD: Do not EVER use the literal word "string" as a value in any field.
-3. If a field was not explicitly discussed in the conversation, use your expertise to infer a logical, professional placeholder based on the project type (e.g., if it's an invoice tracker, infer that target users are likely freelancers or small business owners). For needsDatabase, needsServer, and needsAuth, set them to true or false ONLY when strongly implied/discussed, otherwise default to null.
+3. If a field was not explicitly discussed in the conversation, use your expertise to infer a logical, professional placeholder based on the project type (e.g., if it's an invoice tracker, infer that target users are likely freelancers or small business owners). For needsDatabase, needsServer, and needsAuth: use the project context and type to confidently infer and set them to true or false (e.g., CLI tools, localized utilities, local/standalone bots, or public single-user apps should confidently have needsAuth set to false; stateless utilities should have needsDatabase set to false). Only default to null if it is truly ambiguous.
 4. Ensure the output is valid, parseable JSON.
 
 Conversation:
