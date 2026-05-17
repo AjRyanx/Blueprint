@@ -327,7 +327,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
         <CardContent>
           <Textarea
             placeholder="Describe the overall system architecture, how components interact, deployment model, etc."
-            value={form.overview}
+            value={form.overview ?? ''}
             onChange={(e) => update({ overview: e.target.value })}
             rows={5}
           />
@@ -397,7 +397,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
               <div className="flex items-center gap-2">
                 <Input
                   placeholder="Category (e.g. Frontend, Backend, Database)"
-                  value={cat.category}
+                  value={cat.category ?? ''}
                   onChange={(e) => {
                     const updated = [...form.techStack];
                     updated[ci] = { ...updated[ci], category: e.target.value };
@@ -415,7 +415,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
                 <div key={ii} className="flex items-center gap-2 ml-4">
                   <Input
                     placeholder="Name"
-                    value={item.name}
+                    value={item.name ?? ''}
                     onChange={(e) => {
                       const updated = [...form.techStack];
                       updated[ci].items[ii] = { ...updated[ci].items[ii], name: e.target.value };
@@ -425,7 +425,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
                   />
                   <Input
                     placeholder="Version"
-                    value={item.version}
+                    value={item.version ?? ''}
                     onChange={(e) => {
                       const updated = [...form.techStack];
                       updated[ci].items[ii] = { ...updated[ci].items[ii], version: e.target.value };
@@ -467,17 +467,17 @@ export function ArchitectureDesigner({ projectId }: Props) {
             {form.patterns.map((p, i) => (
               <div key={i} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Input placeholder="Pattern name" value={p.name} onChange={(e) => {
+                  <Input placeholder="Pattern name" value={p.name ?? ''} onChange={(e) => {
                     const u = [...form.patterns]; u[i] = { ...u[i], name: e.target.value }; update({ patterns: u });
                   }} />
                   <Button variant="ghost" size="icon" onClick={() => update({ patterns: form.patterns.filter((_, j) => j !== i) })}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <Textarea placeholder="Description" value={p.description} onChange={(e) => {
+                <Textarea placeholder="Description" value={p.description ?? ''} onChange={(e) => {
                   const u = [...form.patterns]; u[i] = { ...u[i], description: e.target.value }; update({ patterns: u });
                 }} rows={2} />
-                <Textarea placeholder="Rationale for choosing this pattern" value={p.rationale} onChange={(e) => {
+                <Textarea placeholder="Rationale for choosing this pattern" value={p.rationale ?? ''} onChange={(e) => {
                   const u = [...form.patterns]; u[i] = { ...u[i], rationale: e.target.value }; update({ patterns: u });
                 }} rows={2} />
               </div>
@@ -496,7 +496,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
             {form.qualityAttributes.map((q, i) => (
               <div key={i} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Input placeholder="Attribute (e.g. Performance)" value={q.attribute} onChange={(e) => {
+                  <Input placeholder="Attribute (e.g. Performance)" value={q.attribute ?? ''} onChange={(e) => {
                     const u = [...form.qualityAttributes]; u[i] = { ...u[i], attribute: e.target.value }; update({ qualityAttributes: u });
                   }} />
                   <Button variant="ghost" size="icon" onClick={() => update({ qualityAttributes: form.qualityAttributes.filter((_, j) => j !== i) })}>
@@ -504,7 +504,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
                   </Button>
                 </div>
                 <div className="flex gap-2">
-                  <Input placeholder="Target (e.g. <200ms p95)" value={q.target} onChange={(e) => {
+                  <Input placeholder="Target (e.g. <200ms p95)" value={q.target ?? ''} onChange={(e) => {
                     const u = [...form.qualityAttributes]; u[i] = { ...u[i], target: e.target.value }; update({ qualityAttributes: u });
                   }} />
                 </div>
@@ -525,20 +525,20 @@ export function ArchitectureDesigner({ projectId }: Props) {
           {form.decisions.map((d, i) => (
             <div key={i} className="border rounded-lg p-4 space-y-2">
               <div className="flex items-center gap-2">
-                <Input placeholder="Decision title" value={d.title} onChange={(e) => {
+                <Input placeholder="Decision title" value={d.title ?? ''} onChange={(e) => {
                   const u = [...form.decisions]; u[i] = { ...u[i], title: e.target.value }; update({ decisions: u });
                 }} />
                 <Button variant="ghost" size="icon" onClick={() => update({ decisions: form.decisions.filter((_, j) => j !== i) })}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              <Textarea placeholder="Context — what prompted this decision?" value={d.context} onChange={(e) => {
+              <Textarea placeholder="Context — what prompted this decision?" value={d.context ?? ''} onChange={(e) => {
                 const u = [...form.decisions]; u[i] = { ...u[i], context: e.target.value }; update({ decisions: u });
               }} rows={2} />
-              <Textarea placeholder="Decision made" value={d.decision} onChange={(e) => {
+              <Textarea placeholder="Decision made" value={d.decision ?? ''} onChange={(e) => {
                 const u = [...form.decisions]; u[i] = { ...u[i], decision: e.target.value }; update({ decisions: u });
               }} rows={2} />
-              <Textarea placeholder="Consequences — trade-offs, impact" value={d.consequences} onChange={(e) => {
+              <Textarea placeholder="Consequences — trade-offs, impact" value={d.consequences ?? ''} onChange={(e) => {
                 const u = [...form.decisions]; u[i] = { ...u[i], consequences: e.target.value }; update({ decisions: u });
               }} rows={2} />
             </div>
@@ -557,7 +557,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
           {form.constraints.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
               <Badge variant="outline" className="shrink-0">C{i + 1}</Badge>
-              <Input value={c} onChange={(e) => {
+              <Input value={c ?? ''} onChange={(e) => {
                 const u = [...form.constraints]; u[i] = e.target.value; update({ constraints: u });
               }} />
               <Button variant="ghost" size="icon" onClick={() => update({ constraints: form.constraints.filter((_, j) => j !== i) })}>
@@ -573,7 +573,7 @@ export function ArchitectureDesigner({ projectId }: Props) {
         <CardContent>
           <Textarea
             placeholder="Paste Mermaid diagram definitions here..."
-            value={form.diagrams}
+            value={form.diagrams ?? ''}
             onChange={(e) => update({ diagrams: e.target.value })}
             rows={6}
             className="font-mono text-sm"
