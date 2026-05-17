@@ -65,6 +65,7 @@ Guidelines:
      - Recommend: tsup or esbuild for Build Tooling.
      - Set needsServer to false.
      - Set needsAuth to false.
+     - Do NOT include database or auth decisions in the decisions array.
      - Set the Mermaid diagram to show a command/handler/output flow (not a web request/response flow).
    When targetPlatform is "web":
      - Proceed as normal with Frontend, Backend, Database, Auth, Hosting.
@@ -77,3 +78,4 @@ Guidelines:
     - self-hosted: "Must support self-hosted deployment via Docker"
     - local:       "Must run locally with no cloud dependencies at runtime"
     Never use the placeholder text "Must run on cloud/local/self-hosted provider".
+12. The decisions array must reflect the actual project. Do not copy example values from this prompt. For CLI tools, decisions should cover things like: package manager choice, CLI framework selection, distribution strategy (npm global vs binary). For local deployment, decisions should cover: storage format (SQLite, flat file, JSON), packaging approach (pkg, nexe, native installer).
