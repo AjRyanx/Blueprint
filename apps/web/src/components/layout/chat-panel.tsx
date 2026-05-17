@@ -13,9 +13,11 @@ type ChatPanelProps = {
   projectId: string;
   sendMessage: (content: string) => Promise<void>;
   isStreaming: boolean;
+  onSynthesize?: () => void;
+  isSynthesizing?: boolean;
 };
 
-export function ChatPanel({ projectId, sendMessage, isStreaming }: ChatPanelProps) {
+export function ChatPanel({ projectId, sendMessage, isStreaming, onSynthesize, isSynthesizing }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const { messages } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,17 @@ export function ChatPanel({ projectId, sendMessage, isStreaming }: ChatPanelProp
             </div>
           </div>
         </div>
+        {onSynthesize && messages.length >= 2 && (
+          <Button
+            size="sm"
+            onClick={onSynthesize}
+            disabled={isSynthesizing}
+            className="h-8 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-semibold gap-1.5 shadow-sm active:scale-95 transition-all animate-in fade-in zoom-in-95 duration-300"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{isSynthesizing ? 'Forging...' : 'Synthesize Brief'}</span>
+          </Button>
+        )}
       </div>
 
       {/* Messages */}

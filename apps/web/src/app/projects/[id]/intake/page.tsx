@@ -117,7 +117,13 @@ export default function IntakePage() {
     <AppShell
       projectId={projectId}
       chatPanel={
-        <ChatPanel projectId={projectId} sendMessage={sendMessage} isStreaming={isStreaming} />
+        <ChatPanel 
+          projectId={projectId} 
+          sendMessage={sendMessage} 
+          isStreaming={isStreaming} 
+          onSynthesize={() => { if (token) synthesizeMutation.mutate(token); }}
+          isSynthesizing={synthesizeMutation.isPending}
+        />
       }
     >
       <div className="relative min-h-[calc(100vh-3rem)] w-full p-6 md:p-8 overflow-hidden bg-background">
@@ -137,7 +143,7 @@ export default function IntakePage() {
             </div>
           </div>
 
-          {!brief && messages.length > 5 && (
+          {!brief && messages.length >= 2 && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex gap-3">
                 <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5 animate-pulse" />
@@ -182,7 +188,7 @@ export default function IntakePage() {
             </div>
           )}
 
-          {brief && messages.length > 5 && (
+          {brief && messages.length >= 2 && (
             <div className="flex justify-center pt-8 border-t border-border/40">
               <Button
                 variant="outline"
@@ -209,7 +215,7 @@ export default function IntakePage() {
               </p>
               
               <div className="flex flex-wrap items-center justify-center gap-3">
-                {messages.length > 5 && (
+                {messages.length >= 2 && (
                   <Button
                     onClick={() => {
                       if (token) synthesizeMutation.mutate(token);

@@ -35,6 +35,8 @@ When all 5 steps are done → end your response with [READY_TO_SYNTHESIZE].
 5. Never repeat a question you have already asked.
 6. Never ask the user about needsDatabase, needsServer, needsAuth, or
    deployment model — these are inferred silently, never discussed.
+7. If the user explicitly asks to synthesize, generate the brief, says they are done/ready, or if you have covered all 5 steps, end your response with [READY_TO_SYNTHESIZE] immediately.
+
 
 === INTERNAL INFERENCE (silent — never mention these to the user) ===
 After sufficient context is gathered, infer the following from the conversation.
