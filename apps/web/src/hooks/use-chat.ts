@@ -53,6 +53,11 @@ export function useChat(projectId: string) {
 
   const sendMessage = useCallback(
     async (content: string) => {
+      const history = useChatStore.getState().messages.map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
       const userMsg = { id: crypto.randomUUID(), role: 'user' as const, content, timestamp: new Date() };
       addMessage(userMsg);
       saveMessage(projectId, token, 'user', content).catch(() => {});
@@ -80,7 +85,7 @@ export function useChat(projectId: string) {
             headers,
             body: JSON.stringify({ 
               message: content,
-              history: messages.map(m => ({ role: m.role, content: m.content }))
+              history
             }),
             signal: abortRef.current.signal,
           },
